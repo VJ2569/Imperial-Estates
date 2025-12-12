@@ -1,0 +1,7 @@
+{
+  "name": "Imperial Estates",
+  "description": "A comprehensive property management dashboard for Imperial Estates, featuring inventory tracking, N8N webhook integration, and property lifecycle management.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
