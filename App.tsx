@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Menu } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import PropertyManager from './components/PropertyManager';
 import CallHistory from './components/CallHistory';
@@ -9,6 +9,7 @@ import Settings from './components/Settings';
 function App() {
   const [activeTab, setActiveTab] = useState<'properties' | 'receptionist' | 'analytics' | 'settings'>('properties');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isClientView, setIsClientView] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
 
@@ -49,18 +50,36 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex">
+    <div className="h-screen bg-gray-50 flex flex-col md:flex-row overflow-hidden">
+      {/* Mobile Header */}
+      <div className="md:hidden bg-slate-900 text-white p-4 flex items-center justify-between shrink-0 z-30 shadow-md">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => setIsMobileMenuOpen(true)} 
+            className="p-1 rounded-lg hover:bg-slate-800 transition-colors"
+          >
+            <Menu size={24} />
+          </button>
+          <span className="font-bold text-lg tracking-tight">Imperial Estates</span>
+        </div>
+      </div>
+
       <Sidebar 
         activeTab={activeTab} 
-        onTabChange={setActiveTab} 
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          setIsMobileMenuOpen(false);
+        }}
         isCollapsed={isSidebarCollapsed}
         onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
         isClientView={isClientView}
+        isMobileOpen={isMobileMenuOpen}
+        onMobileClose={() => setIsMobileMenuOpen(false)}
       />
       
-      <main className="flex-1 overflow-y-auto h-screen custom-scrollbar relative">
+      <main className="flex-1 overflow-y-auto custom-scrollbar relative w-full">
         {showShareToast && (
-            <div className="absolute top-6 right-6 z-50 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-xl flex items-center gap-2 animate-in slide-in-from-top-2 fade-in">
+            <div className="absolute top-6 right-6 left-6 md:left-auto z-50 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-xl flex items-center justify-center md:justify-start gap-2 animate-in slide-in-from-top-2 fade-in">
               <Check size={14} className="text-emerald-400" />
               Link copied to clipboard!
             </div>
