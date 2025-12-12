@@ -20,9 +20,9 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
   
   // Modal States
   const [showForm, setShowForm] = useState(false);
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null); // For details view
-  const [editingProperty, setEditingProperty] = useState<Property | null>(null); // For edit mode
-  const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null); // For delete confirmation
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [editingProperty, setEditingProperty] = useState<Property | null>(null);
+  const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -47,12 +47,9 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
     }
 
     if (success) {
-      // Refresh list to ensure we have the latest state (from API or local fallback)
       await loadProperties();
       setShowForm(false);
       setEditingProperty(null);
-      
-      // If we were viewing details of the property we just edited, update that view too
       if (selectedProperty && selectedProperty.id === data.id) {
         setSelectedProperty(data);
       }
@@ -70,15 +67,9 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
   const executeDelete = async () => {
     if (!deleteConfirmationId || readOnly) return;
     const id = deleteConfirmationId;
-    
-    // Optimistic Update: Remove from UI immediately so it feels instant
     setProperties(prev => prev.filter(p => p.id !== id));
     if (selectedProperty?.id === id) setSelectedProperty(null);
-    
-    // Close modal immediately
     setDeleteConfirmationId(null);
-    
-    // Process deletion in background (updates local store / calls API)
     await deleteProperty(id);
   };
 
@@ -91,7 +82,7 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
   const openEditForm = (property: Property) => {
     if (readOnly) return;
     setEditingProperty(property);
-    setSelectedProperty(null); // Close details if open
+    setSelectedProperty(null);
     setShowForm(true);
   };
 
@@ -107,22 +98,22 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
   const nextId = `PROP${String(properties.length + 10).padStart(3, '0')}`;
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl mx-auto">
+    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
       {/* Header Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Property Inventory</h2>
-            <p className="text-gray-500 text-sm">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">Property Inventory</h2>
+            <p className="text-gray-500 text-xs md:text-sm mt-1">
               {readOnly ? 'Viewing listings available for clients' : 'Manage your listings and availability'}
             </p>
          </div>
          
          {!readOnly && (
-           <div className="flex flex-col md:flex-row gap-3 w-full md:w-auto">
+           <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
              {onShare && (
                 <button
                   onClick={onShare}
-                  className="bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-semibold shadow-lg shadow-blue-200 flex items-center justify-center gap-2 text-sm"
+                  className="bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-semibold shadow-lg shadow-blue-200 flex items-center justify-center gap-2 text-sm w-full sm:w-auto"
                 >
                   <Share2 size={18} />
                   Share
@@ -130,7 +121,7 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
              )}
              <button
                 onClick={openAddForm}
-                className="bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-semibold shadow-lg shadow-blue-200 flex items-center justify-center gap-2 text-sm"
+                className="bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-semibold shadow-lg shadow-blue-200 flex items-center justify-center gap-2 text-sm w-full sm:w-auto"
               >
                 <Plus size={18} />
                 Add Property
@@ -140,7 +131,7 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
       </div>
 
       {/* Filters */}
-      <div className="mb-8 space-y-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
+      <div className="mb-6 md:mb-8 space-y-4 bg-white p-4 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="relative flex-1 group">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-focus-within:text-blue-500 transition-colors" size={20} />
@@ -153,13 +144,13 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
               />
             </div>
             
-            <div className="flex items-center gap-2 overflow-x-auto">
-               <Filter size={18} className="text-gray-400 hidden md:block" />
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 custom-scrollbar hide-scrollbar-mobile">
+               <Filter size={18} className="text-gray-400 shrink-0 hidden md:block" />
                {(['all', 'apartment', 'villa', 'commercial'] as const).map((type) => (
                   <button
                     key={type}
                     onClick={() => setSelectedType(type)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap capitalize ${
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap capitalize shrink-0 ${
                       selectedType === type 
                         ? 'bg-slate-800 text-white' 
                         : 'bg-white text-slate-600 border border-gray-200 hover:bg-gray-50'
@@ -180,7 +171,7 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
             ))}
           </div>
         ) : filteredProperties.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {filteredProperties.map(property => (
               <PropertyCard
                 key={property.id}
@@ -193,12 +184,12 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
             ))}
           </div>
         ) : (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-16 text-center flex flex-col items-center justify-center">
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-16 text-center flex flex-col items-center justify-center">
             <div className="bg-gray-50 p-4 rounded-full mb-4">
                <LayoutGrid size={48} className="text-gray-300" />
             </div>
             <h3 className="text-xl font-bold text-gray-800 mb-2">No properties found</h3>
-            <p className="text-gray-500 max-w-md mx-auto">
+            <p className="text-gray-500 max-w-md mx-auto text-sm md:text-base">
               We couldn't find any properties matching your search.
             </p>
             <button 
