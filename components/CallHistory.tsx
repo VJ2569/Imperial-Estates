@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Play, FileText, CheckCircle2, XCircle, RefreshCcw, User, X, Filter } from 'lucide-react';
 import { fetchVapiCalls } from '../services/vapiService';
-import { VapiCall } from '../types';
+import { VapiCall, Assistant } from '../types';
 import { format } from 'date-fns';
 
 const CallHistory: React.FC = () => {
@@ -10,19 +10,27 @@ const CallHistory: React.FC = () => {
   const [selectedTranscript, setSelectedTranscript] = useState<string | null>(null);
   
   // Filtering
-  const [assistantIds, setAssistantIds] = useState<string[]>([]);
+  const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [selectedAssistantId, setSelectedAssistantId] = useState<string>('all');
 
   useEffect(() => {
     loadCalls();
-    loadAssistantIds();
+    loadAssistants();
   }, []);
 
-  const loadAssistantIds = () => {
+  const loadAssistants = () => {
       const storedIds = localStorage.getItem('vapi_assistant_ids');
       if (storedIds) {
           try {
-              setAssistantIds(JSON.parse(storedIds));
+              const parsed = JSON.parse(storedIds);
+              // Handle legacy string[] or new Assistant[]
+              if (Array.isArray(parsed)) {
+                  if (parsed.length > 0 && typeof parsed[0] === 'string') {
+                       setAssistants(parsed.map((id, idx) => ({ id, name: `Assistant ${idx+1}` })));
+                  } else {
+                       setAssistants(parsed);
+                  }
+              }
           } catch (e) { console.error(e); }
       }
   };
@@ -41,6 +49,12 @@ const CallHistory: React.FC = () => {
     return `${mins}m ${secs}s`;
   };
 
+  // Helper to get assistant name
+  const getAssistantName = (id: string) => {
+      const assistant = assistants.find(a => a.id === id);
+      return assistant ? assistant.name : `${id.substring(0, 8)}...`;
+  };
+
   // Filter calls based on selected assistant
   const filteredCalls = selectedAssistantId === 'all' 
     ? calls 
@@ -48,10 +62,13 @@ const CallHistory: React.FC = () => {
 
   // If there are multiple assistants configured OR if the call history contains different assistants, show filter
   const uniqueAssistantIdsInCalls = Array.from(new Set(calls.map(c => c.assistantId).filter(Boolean)));
-  const showAssistantFilter = assistantIds.length > 1 || uniqueAssistantIdsInCalls.length > 1;
+  const showAssistantFilter = assistants.length > 1 || uniqueAssistantIdsInCalls.length > 1;
 
   // Merge configured IDs with IDs found in data for the dropdown options
-  const dropdownOptions = Array.from(new Set([...assistantIds, ...uniqueAssistantIdsInCalls]));
+  const dropdownIds = Array.from(new Set([
+      ...assistants.map(a => a.id), 
+      ...uniqueAssistantIdsInCalls
+  ]));
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
@@ -70,14 +87,19 @@ const CallHistory: React.FC = () => {
                     <select
                         value={selectedAssistantId}
                         onChange={(e) => setSelectedAssistantId(e.target.value)}
-                        className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer shadow-sm"
+                        className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer shadow-sm min-w-[180px]"
                     >
                         <option value="all">All Assistants</option>
-                        {dropdownOptions.map(id => (
-                            <option key={id} value={id as string}>
-                                {id === assistantIds[0] ? `${id?.substring(0, 8)}... (Primary)` : `${id?.substring(0, 8)}...`}
-                            </option>
-                        ))}
+                        {dropdownIds.map(id => {
+                            if (!id) return null;
+                            const name = getAssistantName(id as string);
+                            const isPrimary = assistants.length > 0 && id === assistants[0].id;
+                            return (
+                                <option key={id as string} value={id as string}>
+                                    {name} {isPrimary ? '(Primary)' : ''}
+                                </option>
+                            );
+                        })}
                     </select>
                 </div>
             )}
@@ -119,7 +141,7 @@ const CallHistory: React.FC = () => {
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Caller</th>
                   <th className="px-6 py-4">Date & Time</th>
-                  {showAssistantFilter && <th className="px-6 py-4">Assistant ID</th>}
+                  {showAssistantFilter && <th className="px-6 py-4">Assistant</th>}
                   <th className="px-6 py-4">Duration</th>
                   <th className="px-6 py-4">Cost</th>
                   <th className="px-6 py-4 text-right">Actions</th>
@@ -151,8 +173,8 @@ const CallHistory: React.FC = () => {
                       </div>
                     </td>
                     {showAssistantFilter && (
-                        <td className="px-6 py-4 text-gray-500 text-xs font-mono">
-                            {call.assistantId ? `${call.assistantId.substring(0, 6)}...` : '-'}
+                        <td className="px-6 py-4 text-gray-500 text-xs font-medium">
+                            {call.assistantId ? getAssistantName(call.assistantId) : '-'}
                         </td>
                     )}
                     <td className="px-6 py-4 text-gray-600 text-sm font-mono">
