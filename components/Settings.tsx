@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, Key, User, Shield, CheckCircle2, Plus, Trash2, HelpCircle } from 'lucide-react';
 import { VAPI_CONFIG } from '../constants';
+import { Assistant } from '../types';
 
 const Settings: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'general' | 'integrations'>('integrations');
@@ -8,11 +9,12 @@ const Settings: React.FC = () => {
 
   const [vapiConfig, setVapiConfig] = useState({
     publicKey: '',
-    assistantIds: [] as string[],
+    assistants: [] as Assistant[],
     privateKey: ''
   });
   
   const [newAssistantId, setNewAssistantId] = useState('');
+  const [newAssistantName, setNewAssistantName] = useState('');
 
   const [generalConfig, setGeneralConfig] = useState({
     companyName: 'Imperial Estates',
@@ -25,26 +27,39 @@ const Settings: React.FC = () => {
     const storedPublicKey = localStorage.getItem('vapi_public_key') || VAPI_CONFIG.PUBLIC_KEY;
     const storedPrivateKey = localStorage.getItem('vapi_private_key') || VAPI_CONFIG.PRIVATE_KEY;
     
-    // Load Assistant IDs (Migration logic: check array first, then single string)
-    let ids: string[] = [];
+    // Load Assistant IDs (Migration logic: handle both string[] and Assistant[])
+    let loadedAssistants: Assistant[] = [];
     const storedIdsJson = localStorage.getItem('vapi_assistant_ids');
+    
     if (storedIdsJson) {
         try {
-            ids = JSON.parse(storedIdsJson);
+            const parsed = JSON.parse(storedIdsJson);
+            if (Array.isArray(parsed)) {
+                // Check if it's the old string array format
+                if (parsed.length > 0 && typeof parsed[0] === 'string') {
+                    loadedAssistants = parsed.map((id, idx) => ({ 
+                        id, 
+                        name: `Assistant ${idx + 1}` 
+                    }));
+                } else {
+                    // Assume it's the new Assistant[] format
+                    loadedAssistants = parsed;
+                }
+            }
         } catch (e) {
             console.error('Failed to parse assistant IDs', e);
         }
     } else {
-        // Fallback migration
+        // Fallback migration for very old single ID key
         const oldId = localStorage.getItem('vapi_assistant_id') || VAPI_CONFIG.ASSISTANT_ID;
         if (oldId && !oldId.includes('YOUR_VAPI')) {
-            ids = [oldId];
+            loadedAssistants = [{ id: oldId, name: 'Primary Assistant' }];
         }
     }
 
     setVapiConfig({
         publicKey: storedPublicKey === 'YOUR_VAPI_PUBLIC_KEY' ? '' : storedPublicKey,
-        assistantIds: ids,
+        assistants: loadedAssistants,
         privateKey: storedPrivateKey === 'YOUR_VAPI_PRIVATE_KEY_HERE' ? '' : storedPrivateKey
     });
 
@@ -58,12 +73,12 @@ const Settings: React.FC = () => {
     if (vapiConfig.publicKey) localStorage.setItem('vapi_public_key', vapiConfig.publicKey);
     if (vapiConfig.privateKey) localStorage.setItem('vapi_private_key', vapiConfig.privateKey);
     
-    // Save IDs as JSON array
-    localStorage.setItem('vapi_assistant_ids', JSON.stringify(vapiConfig.assistantIds));
+    // Save IDs as JSON array of objects
+    localStorage.setItem('vapi_assistant_ids', JSON.stringify(vapiConfig.assistants));
     
-    // Update the legacy single key for backward compatibility with VoiceAssistant or other components
-    if (vapiConfig.assistantIds.length > 0) {
-        localStorage.setItem('vapi_assistant_id', vapiConfig.assistantIds[0]);
+    // Update the legacy single key for backward compatibility
+    if (vapiConfig.assistants.length > 0) {
+        localStorage.setItem('vapi_assistant_id', vapiConfig.assistants[0].id);
     } else {
         localStorage.removeItem('vapi_assistant_id');
     }
@@ -74,22 +89,27 @@ const Settings: React.FC = () => {
     setTimeout(() => setShowSuccess(false), 3000);
   };
 
-  const addAssistantId = () => {
-    if (newAssistantId.trim()) {
-        if (!vapiConfig.assistantIds.includes(newAssistantId.trim())) {
+  const addAssistant = () => {
+    if (newAssistantId.trim() && newAssistantName.trim()) {
+        const id = newAssistantId.trim();
+        const name = newAssistantName.trim();
+        
+        // Check for duplicate IDs
+        if (!vapiConfig.assistants.some(a => a.id === id)) {
             setVapiConfig(prev => ({
                 ...prev,
-                assistantIds: [...prev.assistantIds, newAssistantId.trim()]
+                assistants: [...prev.assistants, { id, name }]
             }));
         }
         setNewAssistantId('');
+        setNewAssistantName('');
     }
   };
 
-  const removeAssistantId = (idToRemove: string) => {
+  const removeAssistant = (idToRemove: string) => {
     setVapiConfig(prev => ({
         ...prev,
-        assistantIds: prev.assistantIds.filter(id => id !== idToRemove)
+        assistants: prev.assistants.filter(a => a.id !== idToRemove)
     }));
   };
 
@@ -155,19 +175,25 @@ const Settings: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Assistant IDs</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Assistants</label>
                     
-                    <div className="space-y-3 mb-3">
-                        {vapiConfig.assistantIds.map((id, index) => (
-                            <div key={id} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100 group">
-                                <div className="bg-purple-100 text-purple-700 w-6 h-6 rounded flex items-center justify-center text-xs font-bold shrink-0">
+                    <div className="space-y-3 mb-4">
+                        {vapiConfig.assistants.length === 0 && (
+                            <p className="text-sm text-gray-400 italic">No assistants configured.</p>
+                        )}
+                        {vapiConfig.assistants.map((assistant, index) => (
+                            <div key={assistant.id} className="flex items-center gap-3 bg-gray-50 p-3 rounded-lg border border-gray-100 group">
+                                <div className="bg-purple-100 text-purple-700 w-8 h-8 rounded flex items-center justify-center text-xs font-bold shrink-0">
                                     {index + 1}
                                 </div>
-                                <span className="flex-1 font-mono text-sm text-gray-600 truncate">{id}</span>
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-bold text-gray-800 truncate">{assistant.name}</div>
+                                    <div className="text-xs font-mono text-gray-500 truncate">{assistant.id}</div>
+                                </div>
                                 <button 
-                                    onClick={() => removeAssistantId(id)}
-                                    className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-md transition-colors"
-                                    title="Remove ID"
+                                    onClick={() => removeAssistant(assistant.id)}
+                                    className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                                    title="Remove Assistant"
                                 >
                                     <Trash2 size={16} />
                                 </button>
@@ -175,18 +201,25 @@ const Settings: React.FC = () => {
                         ))}
                     </div>
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-col md:flex-row gap-2">
+                        <input 
+                          type="text" 
+                          value={newAssistantName}
+                          onChange={(e) => setNewAssistantName(e.target.value)}
+                          placeholder="Name (e.g. Sales Agent)"
+                          className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm"
+                        />
                         <input 
                           type="text" 
                           value={newAssistantId}
                           onChange={(e) => setNewAssistantId(e.target.value)}
-                          placeholder="Add new Assistant ID (e.g. 5678-efgh-...)"
-                          className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none font-mono text-sm"
+                          placeholder="ID (e.g. 5678-efgh...)"
+                          className="flex-[2] px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none font-mono text-sm"
                         />
                         <button 
-                            onClick={addAssistantId}
-                            disabled={!newAssistantId.trim()}
-                            className="bg-slate-900 text-white px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={addAssistant}
+                            disabled={!newAssistantId.trim() || !newAssistantName.trim()}
+                            className="bg-slate-900 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
                             title="Add Assistant"
                         >
                             <Plus size={20} />
@@ -194,7 +227,7 @@ const Settings: React.FC = () => {
                     </div>
                     <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
                         <HelpCircle size={12} />
-                        If multiple IDs are added, the first one is used for the "Call Agent" button. All are tracked in history.
+                        The first assistant in the list is used for the "Call Agent" button.
                     </p>
                   </div>
 
