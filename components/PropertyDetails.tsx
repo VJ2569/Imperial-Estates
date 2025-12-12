@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, MapPin, Bed, Bath, Square, Calendar, Tag, CheckCircle2, DollarSign } from 'lucide-react';
+import { X, MapPin, Bed, Bath, Square, Calendar, CheckCircle2 } from 'lucide-react';
 import { Property } from '../types';
 
 interface PropertyDetailsProps {
@@ -20,7 +20,6 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property, onClose, on
   const features = property.features ? property.features.split(',').map(f => f.trim()).filter(f => f) : [];
   const hasImages = property.images && property.images.length > 0;
   
-  // Use first image as hero background if available
   const heroStyle = hasImages && property.images ? {
     backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.7)), url(${property.images[0]})`,
     backgroundSize: 'cover',
@@ -28,13 +27,13 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property, onClose, on
   } : {};
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={onClose}>
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 z-50" onClick={onClose}>
       <div 
-        className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]"
+        className="bg-white w-full h-full md:h-auto md:max-h-[90vh] md:max-w-4xl md:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 md:fade-in md:zoom-in duration-200 flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Banner Header */}
-        <div className="relative h-48 md:h-56 bg-gradient-to-r from-slate-800 to-slate-900 p-8 flex flex-col justify-end shrink-0" style={heroStyle}>
+        <div className="relative h-48 md:h-56 bg-gradient-to-r from-slate-800 to-slate-900 p-6 md:p-8 flex flex-col justify-end shrink-0" style={heroStyle}>
           <div className="absolute top-0 right-0 p-4 z-20">
              <button 
                 onClick={onClose}
@@ -51,33 +50,33 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property, onClose, on
                 </span>
                 <span className="text-slate-300 text-sm font-mono">{property.id}</span>
              </div>
-             <h2 className="text-3xl font-bold text-white shadow-sm">{property.title}</h2>
+             <h2 className="text-2xl md:text-3xl font-bold text-white shadow-sm leading-tight">{property.title}</h2>
           </div>
           {!hasImages && (
             <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full mix-blend-overlay filter blur-3xl -mr-16 -mt-16"></div>
           )}
         </div>
 
-        <div className="p-8 overflow-y-auto">
+        <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1">
           {/* Key Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8 pb-8 border-b border-gray-100">
             <div>
               <p className="text-sm text-gray-500 mb-1">Price</p>
-              <p className="text-xl font-bold text-emerald-600">{formatPrice(property.price, property.isRental)}</p>
+              <p className="text-lg md:text-xl font-bold text-emerald-600 truncate">{formatPrice(property.price, property.isRental)}</p>
             </div>
              <div>
               <p className="text-sm text-gray-500 mb-1">Type</p>
-              <p className="text-lg font-semibold text-gray-800 capitalize">{property.type}</p>
+              <p className="text-base md:text-lg font-semibold text-gray-800 capitalize">{property.type}</p>
             </div>
              <div>
               <p className="text-sm text-gray-500 mb-1">Area</p>
-              <p className="text-lg font-semibold text-gray-800 flex items-center">
+              <p className="text-base md:text-lg font-semibold text-gray-800 flex items-center">
                  <Square size={16} className="mr-1 text-blue-500"/> {property.area} sqft
               </p>
             </div>
              <div>
               <p className="text-sm text-gray-500 mb-1">Availability</p>
-              <p className="text-lg font-semibold text-gray-800 flex items-center">
+              <p className="text-base md:text-lg font-semibold text-gray-800 flex items-center">
                  <Calendar size={16} className="mr-1 text-blue-500"/> {property.availableFrom}
               </p>
             </div>
@@ -113,7 +112,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property, onClose, on
                {/* Description */}
                <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-3">Description</h3>
-                  <p className="text-gray-600 leading-relaxed whitespace-pre-line">
+                  <p className="text-gray-600 leading-relaxed whitespace-pre-line text-sm md:text-base">
                     {property.description || "No description provided."}
                   </p>
                </div>
@@ -124,7 +123,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property, onClose, on
                    <h3 className="text-lg font-bold text-gray-900 mb-3">Features & Amenities</h3>
                    <div className="flex flex-wrap gap-2">
                       {features.map((feature, idx) => (
-                        <span key={idx} className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                        <span key={idx} className="inline-flex items-center px-3 py-1.5 rounded-full text-xs md:text-sm font-medium bg-blue-50 text-blue-700 border border-blue-100">
                           <CheckCircle2 size={14} className="mr-1.5" />
                           {feature}
                         </span>
