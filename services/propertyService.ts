@@ -31,8 +31,8 @@ let localProperties: Property[] = loadStoredProperties() || [];
 
 // --- API Helpers ---
 
-// Increased timeout to 10000ms (10s) to allow n8n on Render time to wake up from cold start
-const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout = 10000) => {
+// Increased timeout to 30000ms (30s) to allow n8n on Render time to wake up from cold start
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout = 30000) => {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {
@@ -128,6 +128,7 @@ export const deleteProperty = async (id: string): Promise<boolean> => {
 
   // 2. Try API to sync with Google Sheets
   try {
+    console.log(`Sending delete request for ID: ${id} to ${API_CONFIG.DELETE_PROPERTY}`);
     await fetchWithTimeout(API_CONFIG.DELETE_PROPERTY, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
