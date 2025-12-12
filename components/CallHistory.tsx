@@ -55,20 +55,33 @@ const CallHistory: React.FC = () => {
       return assistant ? assistant.name : `${id.substring(0, 8)}...`;
   };
 
-  // Filter calls based on selected assistant
-  const filteredCalls = selectedAssistantId === 'all' 
-    ? calls 
-    : calls.filter(call => call.assistantId === selectedAssistantId);
-
-  // If there are multiple assistants configured OR if the call history contains different assistants, show filter
+  // Determine which IDs to show in dropdown
+  // If assistants are configured in settings, ONLY show those.
+  // If no assistants are configured, show all IDs found in the call history (fallback).
   const uniqueAssistantIdsInCalls = Array.from(new Set(calls.map(c => c.assistantId).filter(Boolean)));
-  const showAssistantFilter = assistants.length > 1 || uniqueAssistantIdsInCalls.length > 1;
+  
+  const dropdownIds = assistants.length > 0 
+      ? assistants.map(a => a.id)
+      : uniqueAssistantIdsInCalls;
 
-  // Merge configured IDs with IDs found in data for the dropdown options
-  const dropdownIds = Array.from(new Set([
-      ...assistants.map(a => a.id), 
-      ...uniqueAssistantIdsInCalls
-  ]));
+  // Filter calls based on selected assistant and configuration
+  const filteredCalls = calls.filter(call => {
+      // 1. If specific assistant is selected in dropdown
+      if (selectedAssistantId !== 'all') {
+          return call.assistantId === selectedAssistantId;
+      }
+      
+      // 2. If 'All' is selected but we have a configured list of assistants, 
+      // ONLY show calls belonging to those configured assistants.
+      if (assistants.length > 0) {
+          return assistants.some(a => a.id === call.assistantId);
+      }
+      
+      // 3. If no assistants configured, show everything
+      return true;
+  });
+
+  const showAssistantFilter = assistants.length > 1 || (assistants.length === 0 && uniqueAssistantIdsInCalls.length > 1);
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
@@ -129,7 +142,9 @@ const CallHistory: React.FC = () => {
            <p className="text-gray-500 max-w-md mx-auto mt-2 text-sm">
              {selectedAssistantId !== 'all' 
                 ? "No calls found for this specific assistant." 
-                : "Check if your Private Key is configured correctly in Settings or if there are any calls in your history."}
+                : assistants.length > 0 
+                    ? "No calls found for your configured assistants." 
+                    : "Check if your Private Key is configured correctly in Settings or if there are any calls in your history."}
            </p>
         </div>
       ) : (
@@ -141,7 +156,7 @@ const CallHistory: React.FC = () => {
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Caller</th>
                   <th className="px-6 py-4">Date & Time</th>
-                  {showAssistantFilter && <th className="px-6 py-4">Assistant</th>}
+                  <th className="px-6 py-4">Assistant</th>
                   <th className="px-6 py-4">Duration</th>
                   <th className="px-6 py-4">Cost</th>
                   <th className="px-6 py-4 text-right">Actions</th>
@@ -172,11 +187,9 @@ const CallHistory: React.FC = () => {
                         <span className="text-xs">{format(new Date(call.createdAt), 'h:mm a')}</span>
                       </div>
                     </td>
-                    {showAssistantFilter && (
-                        <td className="px-6 py-4 text-gray-500 text-xs font-medium">
-                            {call.assistantId ? getAssistantName(call.assistantId) : '-'}
-                        </td>
-                    )}
+                    <td className="px-6 py-4 text-gray-500 text-xs font-medium">
+                        {call.assistantId ? getAssistantName(call.assistantId) : '-'}
+                    </td>
                     <td className="px-6 py-4 text-gray-600 text-sm font-mono">
                       {formatDuration(call.duration)}
                     </td>
