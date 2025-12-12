@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, AlertCircle, Image as ImageIcon } from 'lucide-react';
+import { X, Save, Image as ImageIcon } from 'lucide-react';
 import { Property, PropertyFormData, PropertyStatus, PropertyType } from '../types';
 
 interface PropertyFormProps {
@@ -28,25 +28,19 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
     ...initialData
   });
 
-  // Local state to manage the 5 image inputs
   const [imageInputs, setImageInputs] = useState<string[]>(['', '', '', '', '']);
-
   const [id, setId] = useState<string>(initialData?.id || newId || '');
 
-  // Reset form when initialData changes
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
       setId(initialData.id);
-      
-      // Populate image inputs from existing data
       const existingImages = initialData.images || [];
       const newInputs = ['', '', '', '', ''];
       existingImages.forEach((img, idx) => {
         if (idx < 5) newInputs[idx] = img;
       });
       setImageInputs(newInputs);
-
     } else if (newId) {
       setFormData(prev => ({ ...prev, title: '', location: '' })); 
       setId(newId);
@@ -56,7 +50,6 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Filter out empty strings from image inputs
     const validImages = imageInputs.filter(img => img.trim() !== '');
     await onSave({ ...formData, id, images: validImages });
   };
@@ -74,14 +67,14 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
   const inputClass = "w-full px-4 py-2.5 bg-slate-50 focus:bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400";
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-2xl w-full max-w-4xl shadow-2xl flex flex-col max-h-[90vh] animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 z-50">
+      <div className="bg-white w-full h-full md:h-auto md:max-h-[90vh] md:max-w-4xl md:rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 md:fade-in md:zoom-in duration-200">
         
         {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl">
+        <div className="px-4 md:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 md:rounded-t-2xl shrink-0">
           <div>
-            <h2 className="text-xl font-bold text-slate-800">{initialData ? 'Edit Property' : 'Add New Property'}</h2>
-            <p className="text-slate-500 text-sm mt-0.5">Fill in the details below to {initialData ? 'update' : 'create'} a listing.</p>
+            <h2 className="text-lg md:text-xl font-bold text-slate-800">{initialData ? 'Edit Property' : 'Add New Property'}</h2>
+            <p className="text-slate-500 text-xs md:text-sm mt-0.5">Fill in the details below to {initialData ? 'update' : 'create'} a listing.</p>
           </div>
           <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200 transition-colors">
             <X size={24} />
@@ -89,7 +82,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
         </div>
 
         {/* Form Content */}
-        <form onSubmit={handleSubmit} className="p-8 overflow-y-auto custom-scrollbar">
+        <form onSubmit={handleSubmit} className="p-4 md:p-8 overflow-y-auto custom-scrollbar flex-1">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
             
             {/* ID - Read Only */}
@@ -100,7 +93,6 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
                </div>
             </div>
 
-            {/* Basic Info Section */}
             <div className="col-span-1 md:col-span-2">
                <h3 className="text-sm font-bold text-slate-900 border-b pb-2 mb-4">Basic Information</h3>
             </div>
@@ -155,7 +147,6 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
               />
             </div>
 
-             {/* Financials & Details Section */}
              <div className="col-span-1 md:col-span-2 mt-2">
                <h3 className="text-sm font-bold text-slate-900 border-b pb-2 mb-4">Details & Financials</h3>
             </div>
@@ -230,7 +221,6 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
               </label>
             </div>
 
-            {/* Images Section */}
             <div className="col-span-1 md:col-span-2 mt-2">
                <h3 className="text-sm font-bold text-slate-900 border-b pb-2 mb-4">Property Images (Max 5)</h3>
             </div>
@@ -238,7 +228,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
             <div className="col-span-1 md:col-span-2 space-y-3">
               {imageInputs.map((url, idx) => (
                 <div key={idx} className="flex gap-2 items-center">
-                   <div className="bg-slate-100 p-2 rounded text-slate-500">
+                   <div className="bg-slate-100 p-2 rounded text-slate-500 shrink-0">
                       <ImageIcon size={18} />
                    </div>
                    <input
@@ -246,14 +236,13 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
                       value={url}
                       onChange={(e) => handleImageChange(idx, e.target.value)}
                       className={inputClass}
-                      placeholder={`Image URL ${idx + 1} (e.g. https://example.com/image.jpg)`}
+                      placeholder={`Image URL ${idx + 1}`}
                    />
                 </div>
               ))}
-              <p className="text-xs text-slate-500 ml-1">Provide direct links to images (hosted on Imgur, AWS S3, etc.)</p>
+              <p className="text-xs text-slate-500 ml-1">Provide direct links to images</p>
             </div>
 
-             {/* Description Section */}
              <div className="col-span-1 md:col-span-2 mt-2">
                <h3 className="text-sm font-bold text-slate-900 border-b pb-2 mb-4">Marketing</h3>
             </div>
@@ -282,34 +271,35 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
             </div>
 
           </div>
-
-          <div className="mt-8 flex gap-4 pt-4 border-t border-gray-100">
-             <button
-              type="button"
-              onClick={onCancel}
-              className="flex-1 px-6 py-3 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSaving}
-              className={`flex-1 px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2 ${isSaving ? 'opacity-70 cursor-not-allowed' : 'shadow-lg shadow-blue-200'}`}
-            >
-              {isSaving ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                <>
-                  <Save size={20} />
-                  Save Property
-                </>
-              )}
-            </button>
-          </div>
         </form>
+
+        {/* Footer Actions */}
+        <div className="px-4 md:px-8 py-4 border-t border-gray-100 bg-gray-50 md:rounded-b-2xl shrink-0 flex gap-3">
+           <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 px-4 md:px-6 py-3 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={isSaving}
+            className={`flex-1 px-4 md:px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2 ${isSaving ? 'opacity-70 cursor-not-allowed' : 'shadow-lg shadow-blue-200'}`}
+          >
+            {isSaving ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <span className="hidden sm:inline">Saving...</span>
+              </>
+            ) : (
+              <>
+                <Save size={20} />
+                <span>Save Property</span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
