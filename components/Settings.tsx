@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Key, User, Shield, CheckCircle2 } from 'lucide-react';
+import { Save, Key, User, Shield, CheckCircle2, Plus, Trash2, HelpCircle } from 'lucide-react';
 import { VAPI_CONFIG } from '../constants';
 
 const Settings: React.FC = () => {
@@ -8,9 +8,11 @@ const Settings: React.FC = () => {
 
   const [vapiConfig, setVapiConfig] = useState({
     publicKey: '',
-    assistantId: '',
+    assistantIds: [] as string[],
     privateKey: ''
   });
+  
+  const [newAssistantId, setNewAssistantId] = useState('');
 
   const [generalConfig, setGeneralConfig] = useState({
     companyName: 'Imperial Estates',
@@ -19,17 +21,32 @@ const Settings: React.FC = () => {
   });
 
   useEffect(() => {
-    const storedVapi = {
-      publicKey: localStorage.getItem('vapi_public_key') || VAPI_CONFIG.PUBLIC_KEY,
-      assistantId: localStorage.getItem('vapi_assistant_id') || VAPI_CONFIG.ASSISTANT_ID,
-      privateKey: localStorage.getItem('vapi_private_key') || VAPI_CONFIG.PRIVATE_KEY
-    };
+    // Load Vapi Config
+    const storedPublicKey = localStorage.getItem('vapi_public_key') || VAPI_CONFIG.PUBLIC_KEY;
+    const storedPrivateKey = localStorage.getItem('vapi_private_key') || VAPI_CONFIG.PRIVATE_KEY;
     
-    if (storedVapi.publicKey === 'YOUR_VAPI_PUBLIC_KEY') storedVapi.publicKey = '';
-    if (storedVapi.assistantId === 'YOUR_VAPI_ASSISTANT_ID') storedVapi.assistantId = '';
-    if (storedVapi.privateKey === 'YOUR_VAPI_PRIVATE_KEY_HERE') storedVapi.privateKey = '';
+    // Load Assistant IDs (Migration logic: check array first, then single string)
+    let ids: string[] = [];
+    const storedIdsJson = localStorage.getItem('vapi_assistant_ids');
+    if (storedIdsJson) {
+        try {
+            ids = JSON.parse(storedIdsJson);
+        } catch (e) {
+            console.error('Failed to parse assistant IDs', e);
+        }
+    } else {
+        // Fallback migration
+        const oldId = localStorage.getItem('vapi_assistant_id') || VAPI_CONFIG.ASSISTANT_ID;
+        if (oldId && !oldId.includes('YOUR_VAPI')) {
+            ids = [oldId];
+        }
+    }
 
-    setVapiConfig(storedVapi);
+    setVapiConfig({
+        publicKey: storedPublicKey === 'YOUR_VAPI_PUBLIC_KEY' ? '' : storedPublicKey,
+        assistantIds: ids,
+        privateKey: storedPrivateKey === 'YOUR_VAPI_PRIVATE_KEY_HERE' ? '' : storedPrivateKey
+    });
 
     const storedGeneral = localStorage.getItem('app_general_config');
     if (storedGeneral) {
@@ -39,13 +56,41 @@ const Settings: React.FC = () => {
 
   const handleSave = () => {
     if (vapiConfig.publicKey) localStorage.setItem('vapi_public_key', vapiConfig.publicKey);
-    if (vapiConfig.assistantId) localStorage.setItem('vapi_assistant_id', vapiConfig.assistantId);
     if (vapiConfig.privateKey) localStorage.setItem('vapi_private_key', vapiConfig.privateKey);
+    
+    // Save IDs as JSON array
+    localStorage.setItem('vapi_assistant_ids', JSON.stringify(vapiConfig.assistantIds));
+    
+    // Update the legacy single key for backward compatibility with VoiceAssistant or other components
+    if (vapiConfig.assistantIds.length > 0) {
+        localStorage.setItem('vapi_assistant_id', vapiConfig.assistantIds[0]);
+    } else {
+        localStorage.removeItem('vapi_assistant_id');
+    }
 
     localStorage.setItem('app_general_config', JSON.stringify(generalConfig));
 
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
+  };
+
+  const addAssistantId = () => {
+    if (newAssistantId.trim()) {
+        if (!vapiConfig.assistantIds.includes(newAssistantId.trim())) {
+            setVapiConfig(prev => ({
+                ...prev,
+                assistantIds: [...prev.assistantIds, newAssistantId.trim()]
+            }));
+        }
+        setNewAssistantId('');
+    }
+  };
+
+  const removeAssistantId = (idToRemove: string) => {
+    setVapiConfig(prev => ({
+        ...prev,
+        assistantIds: prev.assistantIds.filter(id => id !== idToRemove)
+    }));
   };
 
   return (
@@ -110,15 +155,47 @@ const Settings: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Assistant ID</label>
-                    <input 
-                      type="text" 
-                      value={vapiConfig.assistantId}
-                      onChange={(e) => setVapiConfig({...vapiConfig, assistantId: e.target.value})}
-                      placeholder="e.g. 5678-efgh-..."
-                      className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none font-mono text-sm"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">The specific agent configuration to load.</p>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Assistant IDs</label>
+                    
+                    <div className="space-y-3 mb-3">
+                        {vapiConfig.assistantIds.map((id, index) => (
+                            <div key={id} className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-100 group">
+                                <div className="bg-purple-100 text-purple-700 w-6 h-6 rounded flex items-center justify-center text-xs font-bold shrink-0">
+                                    {index + 1}
+                                </div>
+                                <span className="flex-1 font-mono text-sm text-gray-600 truncate">{id}</span>
+                                <button 
+                                    onClick={() => removeAssistantId(id)}
+                                    className="p-1.5 text-gray-400 hover:text-rose-500 hover:bg-rose-50 rounded-md transition-colors"
+                                    title="Remove ID"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="flex gap-2">
+                        <input 
+                          type="text" 
+                          value={newAssistantId}
+                          onChange={(e) => setNewAssistantId(e.target.value)}
+                          placeholder="Add new Assistant ID (e.g. 5678-efgh-...)"
+                          className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none font-mono text-sm"
+                        />
+                        <button 
+                            onClick={addAssistantId}
+                            disabled={!newAssistantId.trim()}
+                            className="bg-slate-900 text-white px-3 py-2 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Add Assistant"
+                        >
+                            <Plus size={20} />
+                        </button>
+                    </div>
+                    <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                        <HelpCircle size={12} />
+                        If multiple IDs are added, the first one is used for the "Call Agent" button. All are tracked in history.
+                    </p>
                   </div>
 
                   <div className="pt-4 border-t border-gray-100">
