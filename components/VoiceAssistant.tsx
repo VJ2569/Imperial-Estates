@@ -11,10 +11,31 @@ const VoiceAssistant: React.FC = () => {
   const vapiRef = useRef<any>(null);
 
   // Helper to get keys
-  const getKeys = () => ({
-    publicKey: localStorage.getItem('vapi_public_key') || VAPI_CONFIG.PUBLIC_KEY,
-    assistantId: localStorage.getItem('vapi_assistant_id') || VAPI_CONFIG.ASSISTANT_ID
-  });
+  const getKeys = () => {
+    const publicKey = localStorage.getItem('vapi_public_key') || VAPI_CONFIG.PUBLIC_KEY;
+    
+    // Logic to determine active assistant ID
+    // 1. Check for the new list format
+    let assistantId = '';
+    const storedIdsJson = localStorage.getItem('vapi_assistant_ids');
+    if (storedIdsJson) {
+        try {
+            const ids = JSON.parse(storedIdsJson);
+            if (Array.isArray(ids) && ids.length > 0) {
+                assistantId = ids[0]; // Use the first one as primary
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }
+    
+    // 2. Fallback to old single key if no list or empty list
+    if (!assistantId) {
+        assistantId = localStorage.getItem('vapi_assistant_id') || VAPI_CONFIG.ASSISTANT_ID;
+    }
+    
+    return { publicKey, assistantId };
+  };
 
   useEffect(() => {
     const { publicKey } = getKeys();
@@ -142,9 +163,7 @@ const VoiceAssistant: React.FC = () => {
       >
         {isSessionActive ? (
           <MicOff className="text-white" size={28} />
-        ) : (
-          <div className="relative">
-            <Mic className="text-white" size={28} />
+        text-white" size={28} />
             {!isSessionActive && !isConnecting && (
               <span className="absolute -top-1 -right-1 flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
