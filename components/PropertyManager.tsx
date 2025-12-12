@@ -3,7 +3,6 @@ import { Search, Plus, LayoutGrid, Filter, AlertTriangle, Share2 } from 'lucide-
 import PropertyCard from './PropertyCard';
 import PropertyForm from './PropertyForm';
 import PropertyDetails from './PropertyDetails';
-import VoiceAssistant from './VoiceAssistant';
 import { fetchProperties, createProperty, updateProperty, deleteProperty } from '../services/propertyService';
 import { Property, PropertyType } from '../types';
 
@@ -24,6 +23,9 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // State for generated ID to ensure it remains stable during form interaction
+  const [generatedId, setGeneratedId] = useState('');
 
   useEffect(() => {
     loadProperties();
@@ -76,6 +78,10 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
   const openAddForm = () => {
     if (readOnly) return;
     setEditingProperty(null);
+    // Generate a robust unique ID: PROP-{timestamp}-{random}
+    // ensuring uniqueness for webhook updates and DB consistency
+    const uniqueId = `PROP-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
+    setGeneratedId(uniqueId);
     setShowForm(true);
   };
 
@@ -94,8 +100,6 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
       prop.id.toLowerCase().includes(searchQuery.toLowerCase());
     return matchesType && matchesSearch;
   });
-
-  const nextId = `PROP${String(properties.length + 10).padStart(3, '0')}`;
 
   return (
     <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
@@ -201,14 +205,13 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
           </div>
         )}
 
-      {/* Voice Assistant - Only on Property Page and NOT ReadOnly */}
-      {!readOnly && <VoiceAssistant />}
+      {/* Voice Assistant - Removed as per request */}
 
       {/* Modals */}
       {showForm && !readOnly && (
         <PropertyForm
           initialData={editingProperty}
-          newId={nextId}
+          newId={generatedId}
           onSave={handleCreateOrUpdate}
           onCancel={() => setShowForm(false)}
           isSaving={isSaving}
