@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Play, FileText, CheckCircle2, XCircle, RefreshCcw, User, X } from 'lucide-react';
+import { Play, FileText, CheckCircle2, XCircle, RefreshCcw, User, X, Filter } from 'lucide-react';
 import { fetchVapiCalls } from '../services/vapiService';
 import { VapiCall } from '../types';
 import { format } from 'date-fns';
@@ -8,10 +8,24 @@ const CallHistory: React.FC = () => {
   const [calls, setCalls] = useState<VapiCall[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTranscript, setSelectedTranscript] = useState<string | null>(null);
+  
+  // Filtering
+  const [assistantIds, setAssistantIds] = useState<string[]>([]);
+  const [selectedAssistantId, setSelectedAssistantId] = useState<string>('all');
 
   useEffect(() => {
     loadCalls();
+    loadAssistantIds();
   }, []);
+
+  const loadAssistantIds = () => {
+      const storedIds = localStorage.getItem('vapi_assistant_ids');
+      if (storedIds) {
+          try {
+              setAssistantIds(JSON.parse(storedIds));
+          } catch (e) { console.error(e); }
+      }
+  };
 
   const loadCalls = async () => {
     setLoading(true);
@@ -27,20 +41,55 @@ const CallHistory: React.FC = () => {
     return `${mins}m ${secs}s`;
   };
 
+  // Filter calls based on selected assistant
+  const filteredCalls = selectedAssistantId === 'all' 
+    ? calls 
+    : calls.filter(call => call.assistantId === selectedAssistantId);
+
+  // If there are multiple assistants configured OR if the call history contains different assistants, show filter
+  const uniqueAssistantIdsInCalls = Array.from(new Set(calls.map(c => c.assistantId).filter(Boolean)));
+  const showAssistantFilter = assistantIds.length > 1 || uniqueAssistantIdsInCalls.length > 1;
+
+  // Merge configured IDs with IDs found in data for the dropdown options
+  const dropdownOptions = Array.from(new Set([...assistantIds, ...uniqueAssistantIdsInCalls]));
+
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
-      <div className="flex items-center justify-between mb-6 md:mb-8">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
           <h2 className="text-xl md:text-2xl font-bold text-gray-900">Receptionist Logs</h2>
           <p className="text-gray-500 text-xs md:text-sm">Inbound call history</p>
         </div>
-        <button 
-          onClick={loadCalls}
-          className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-          title="Refresh Logs"
-        >
-          <RefreshCcw size={20} className={loading ? 'animate-spin' : ''} />
-        </button>
+        
+        <div className="flex items-center gap-3">
+            {showAssistantFilter && (
+                <div className="relative">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
+                        <Filter size={16} />
+                    </div>
+                    <select
+                        value={selectedAssistantId}
+                        onChange={(e) => setSelectedAssistantId(e.target.value)}
+                        className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer shadow-sm"
+                    >
+                        <option value="all">All Assistants</option>
+                        {dropdownOptions.map(id => (
+                            <option key={id} value={id as string}>
+                                {id === assistantIds[0] ? `${id?.substring(0, 8)}... (Primary)` : `${id?.substring(0, 8)}...`}
+                            </option>
+                        ))}
+                    </select>
+                </div>
+            )}
+            
+            <button 
+              onClick={loadCalls}
+              className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-gray-200 bg-white shadow-sm"
+              title="Refresh Logs"
+            >
+              <RefreshCcw size={20} className={loading ? 'animate-spin' : ''} />
+            </button>
+        </div>
       </div>
 
       {loading ? (
@@ -49,14 +98,16 @@ const CallHistory: React.FC = () => {
              <div key={i} className="h-20 bg-white rounded-xl border border-gray-100"></div>
            ))}
         </div>
-      ) : calls.length === 0 ? (
+      ) : filteredCalls.length === 0 ? (
         <div className="bg-white rounded-xl p-8 md:p-12 text-center border border-gray-200">
            <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
               <User size={32} />
            </div>
            <h3 className="text-lg font-bold text-gray-900">No Calls Found</h3>
            <p className="text-gray-500 max-w-md mx-auto mt-2 text-sm">
-             Check if your Private Key is configured correctly in Settings or if there are any calls in your history.
+             {selectedAssistantId !== 'all' 
+                ? "No calls found for this specific assistant." 
+                : "Check if your Private Key is configured correctly in Settings or if there are any calls in your history."}
            </p>
         </div>
       ) : (
@@ -68,13 +119,14 @@ const CallHistory: React.FC = () => {
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4">Caller</th>
                   <th className="px-6 py-4">Date & Time</th>
+                  {showAssistantFilter && <th className="px-6 py-4">Assistant ID</th>}
                   <th className="px-6 py-4">Duration</th>
                   <th className="px-6 py-4">Cost</th>
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {calls.map((call) => (
+                {filteredCalls.map((call) => (
                   <tr key={call.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
                       {call.analysis?.successEvaluation === 'true' || call.status === 'ended' ? (
@@ -98,6 +150,11 @@ const CallHistory: React.FC = () => {
                         <span className="text-xs">{format(new Date(call.createdAt), 'h:mm a')}</span>
                       </div>
                     </td>
+                    {showAssistantFilter && (
+                        <td className="px-6 py-4 text-gray-500 text-xs font-mono">
+                            {call.assistantId ? `${call.assistantId.substring(0, 6)}...` : '-'}
+                        </td>
+                    )}
                     <td className="px-6 py-4 text-gray-600 text-sm font-mono">
                       {formatDuration(call.duration)}
                     </td>
