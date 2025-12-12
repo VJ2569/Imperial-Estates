@@ -26,7 +26,6 @@ const saveStoredProperties = (properties: Property[]) => {
 // --- Initialization ---
 
 // Initialize local state: Try LocalStorage first, then fall back to empty array.
-// We no longer use demo data to prevent "default properties" from reappearing unexpectedly.
 let localProperties: Property[] = loadStoredProperties() || [];
 
 // --- API Helpers ---
@@ -51,14 +50,11 @@ const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout 
 // --- Service Methods ---
 
 export const fetchProperties = async (): Promise<Property[]> => {
-  // Always try to fetch fresh data from the API (Google Sheets/n8n) first.
-  // This ensures the app stays in sync with the spreadsheet.
   try {
     const response = await fetchWithTimeout(API_CONFIG.GET_ALL);
     if (response.ok) {
       const data = await response.json();
       
-      // Handle both { properties: [...] } and direct array [...] formats from n8n
       let fetchedProperties: Property[] | null = null;
       
       if (Array.isArray(data)) {
@@ -68,7 +64,6 @@ export const fetchProperties = async (): Promise<Property[]> => {
       }
 
       if (fetchedProperties) {
-        // Server is the source of truth - update local cache
         localProperties = fetchedProperties;
         saveStoredProperties(localProperties);
         return localProperties;
@@ -78,17 +73,15 @@ export const fetchProperties = async (): Promise<Property[]> => {
     console.warn('API unavailable or timed out, utilizing local storage cache.');
   }
   
-  // Fallback to local data if API fails or returns invalid data
   return localProperties;
 };
 
 export const createProperty = async (property: Property): Promise<boolean> => {
-  // 1. Update In-Memory State & Local Storage (Optimistic UI Update)
   localProperties = [...localProperties, property];
   saveStoredProperties(localProperties);
 
-  // 2. Try API to sync with Google Sheets
   try {
+    // Attempt standard JSON POST first
     await fetchWithTimeout(API_CONFIG.ADD_PROPERTY, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -97,17 +90,26 @@ export const createProperty = async (property: Property): Promise<boolean> => {
     return true;
   } catch (error) {
     console.warn('API unavailable, saved locally:', error);
-    // Return true because we successfully saved it locally
+    
+    // Retry with no-cors simple request if the first failed (likely CORS)
+    try {
+        await fetch(API_CONFIG.ADD_PROPERTY, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify(property),
+            keepalive: true
+        });
+    } catch (e) { console.error('Backup sync failed', e); }
+    
     return true;
   }
 };
 
 export const updateProperty = async (property: Property): Promise<boolean> => {
-  // 1. Update In-Memory State & Local Storage (Optimistic UI Update)
   localProperties = localProperties.map(p => p.id === property.id ? property : p);
   saveStoredProperties(localProperties);
 
-  // 2. Try API to sync with Google Sheets
   try {
     await fetchWithTimeout(API_CONFIG.UPDATE_PROPERTY, {
       method: 'POST',
@@ -117,26 +119,65 @@ export const updateProperty = async (property: Property): Promise<boolean> => {
     return true;
   } catch (error) {
     console.warn('Error updating property, updated locally:', error);
+    
+    try {
+        await fetch(API_CONFIG.UPDATE_PROPERTY, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'text/plain' },
+            body: JSON.stringify(property),
+            keepalive: true
+        });
+    } catch (e) { console.error('Backup sync failed', e); }
+
     return true;
   }
 };
 
 export const deleteProperty = async (id: string): Promise<boolean> => {
-  // 1. Update In-Memory State & Local Storage (Optimistic UI Update)
   localProperties = localProperties.filter(p => p.id !== id);
   saveStoredProperties(localProperties);
 
-  // 2. Try API to sync with Google Sheets
+  // Strategy for Delete:
+  // 1. Try standard JSON POST (best for properly configured servers)
+  // 2. Fallback to 'no-cors' simple POST (bypasses Preflight OPTIONS check)
+  //    This is crucial for n8n on Render which often blocks OPTIONS requests from browsers.
+  
+  const payload = JSON.stringify({ id });
+
   try {
-    console.log(`Sending delete request for ID: ${id} to ${API_CONFIG.DELETE_PROPERTY}`);
-    await fetchWithTimeout(API_CONFIG.DELETE_PROPERTY, {
+    console.log(`Sending delete request for ID: ${id}`);
+    
+    // First attempt: Standard
+    const response = await fetchWithTimeout(API_CONFIG.DELETE_PROPERTY, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
-    });
+      body: payload
+    }, 5000); // Short timeout for first attempt
+
+    if (!response.ok) throw new Error('Standard fetch failed');
+    
     return true;
   } catch (error) {
-    console.warn('Error deleting property, deleted locally:', error);
-    return true;
+    console.warn('Standard delete failed, attempting fallback (no-cors)...', error);
+    
+    try {
+        // Fallback: Simple Request (No Preflight)
+        // Note: Response will be opaque (status 0), so we can't check .ok
+        await fetch(API_CONFIG.DELETE_PROPERTY, {
+            method: 'POST',
+            mode: 'no-cors', 
+            headers: { 
+                'Content-Type': 'text/plain' 
+            },
+            body: payload,
+            keepalive: true 
+        });
+        console.log('Fallback delete request sent');
+        return true;
+    } catch (e) {
+        console.error('All delete attempts failed', e);
+        return true; // Still return true as local delete succeeded
+    }
   }
 };
