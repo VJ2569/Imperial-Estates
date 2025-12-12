@@ -48,4 +48,5 @@ export interface VapiCall {
   };
   cost?: number;
   duration?: number; // in seconds usually
+  assistantId?: string;
 }
