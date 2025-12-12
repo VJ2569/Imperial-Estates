@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Key, User, Bell, Shield, Globe, CheckCircle2 } from 'lucide-react';
+import { Save, Key, User, Shield, CheckCircle2 } from 'lucide-react';
 import { VAPI_CONFIG } from '../constants';
 
 const Settings: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'general' | 'integrations'>('integrations');
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Form States
   const [vapiConfig, setVapiConfig] = useState({
     publicKey: '',
     assistantId: '',
@@ -20,14 +19,12 @@ const Settings: React.FC = () => {
   });
 
   useEffect(() => {
-    // Load from Local Storage on mount
     const storedVapi = {
       publicKey: localStorage.getItem('vapi_public_key') || VAPI_CONFIG.PUBLIC_KEY,
       assistantId: localStorage.getItem('vapi_assistant_id') || VAPI_CONFIG.ASSISTANT_ID,
       privateKey: localStorage.getItem('vapi_private_key') || VAPI_CONFIG.PRIVATE_KEY
     };
     
-    // Filter out placeholder text if it exists so inputs look clean
     if (storedVapi.publicKey === 'YOUR_VAPI_PUBLIC_KEY') storedVapi.publicKey = '';
     if (storedVapi.assistantId === 'YOUR_VAPI_ASSISTANT_ID') storedVapi.assistantId = '';
     if (storedVapi.privateKey === 'YOUR_VAPI_PRIVATE_KEY_HERE') storedVapi.privateKey = '';
@@ -41,41 +38,35 @@ const Settings: React.FC = () => {
   }, []);
 
   const handleSave = () => {
-    // Save Vapi Config
     if (vapiConfig.publicKey) localStorage.setItem('vapi_public_key', vapiConfig.publicKey);
     if (vapiConfig.assistantId) localStorage.setItem('vapi_assistant_id', vapiConfig.assistantId);
     if (vapiConfig.privateKey) localStorage.setItem('vapi_private_key', vapiConfig.privateKey);
 
-    // Save General Config
     localStorage.setItem('app_general_config', JSON.stringify(generalConfig));
 
-    // Show success feedback
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 3000);
-    
-    // Force a reload might be needed for some components to pick up new keys immediately, 
-    // but usually local storage read happens on component mount.
   };
 
   return (
-    <div className="p-6 md:p-8 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-4 md:p-8 max-w-5xl mx-auto w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
-          <p className="text-gray-500 text-sm">Manage integrations and application preferences</p>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900">Settings</h2>
+          <p className="text-gray-500 text-sm">Application preferences</p>
         </div>
         <button
           onClick={handleSave}
-          className="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-semibold shadow-lg shadow-blue-200 flex items-center gap-2"
+          className="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-semibold shadow-lg shadow-blue-200 flex items-center justify-center gap-2 w-full sm:w-auto"
         >
           {showSuccess ? <CheckCircle2 size={20} /> : <Save size={20} />}
           {showSuccess ? 'Saved!' : 'Save Changes'}
         </button>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col md:flex-row gap-6 md:gap-8">
         {/* Settings Sidebar */}
-        <div className="w-full md:w-64 space-y-2">
+        <div className="w-full md:w-64 space-y-2 flex-shrink-0">
           <button
             onClick={() => setActiveSection('integrations')}
             className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-medium transition-colors ${
@@ -101,10 +92,10 @@ const Settings: React.FC = () => {
         </div>
 
         {/* Content Area */}
-        <div className="flex-1">
+        <div className="flex-1 min-w-0">
           {activeSection === 'integrations' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+              <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm">
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Public Key</label>
@@ -144,7 +135,7 @@ const Settings: React.FC = () => {
                     </div>
                     <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
                       <Shield size={10} />
-                      Stored locally in your browser. Used to fetch call logs & analytics.
+                      Stored locally. Used to fetch logs.
                     </p>
                   </div>
                 </div>
@@ -154,10 +145,10 @@ const Settings: React.FC = () => {
 
           {activeSection === 'general' && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
-              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+              <div className="bg-white p-4 md:p-6 rounded-xl border border-gray-200 shadow-sm">
                 <h3 className="font-bold text-gray-900 mb-6 border-b border-gray-100 pb-4">Profile Information</h3>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
                     <input 
@@ -188,20 +179,6 @@ const Settings: React.FC = () => {
                     />
                   </div>
                 </div>
-              </div>
-
-              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm opacity-60">
-                 <div className="flex items-center justify-between">
-                    <div>
-                        <h3 className="font-bold text-gray-900">Notifications</h3>
-                        <p className="text-sm text-gray-500">Receive email alerts for new leads</p>
-                    </div>
-                    <div className="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
-                        <input type="checkbox" name="toggle" id="toggle" className="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer"/>
-                        <label htmlFor="toggle" className="toggle-label block overflow-hidden h-6 rounded-full bg-gray-300 cursor-pointer"></label>
-                    </div>
-                 </div>
-                 <p className="text-xs text-gray-400 mt-2">Feature coming soon.</p>
               </div>
             </div>
           )}
