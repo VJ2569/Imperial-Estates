@@ -28,6 +28,11 @@ export interface ApiConfig {
   DELETE_PROPERTY: string;
 }
 
+export interface Assistant {
+  id: string;
+  name: string;
+}
+
 export interface VapiCall {
   id: string;
   createdAt: string;
