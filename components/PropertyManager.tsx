@@ -261,7 +261,10 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
       {showComparison && (
           <PropertyComparison 
               properties={compareList} 
-              onClose={() => setShowComparison(false)} 
+              onClose={() => {
+                  setShowComparison(false);
+                  setCompareList([]);
+              }} 
           />
       )}
 
