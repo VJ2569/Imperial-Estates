@@ -138,46 +138,42 @@ export const deleteProperty = async (id: string): Promise<boolean> => {
   localProperties = localProperties.filter(p => p.id !== id);
   saveStoredProperties(localProperties);
 
-  // Strategy for Delete:
-  // 1. Try standard JSON POST (best for properly configured servers)
-  // 2. Fallback to 'no-cors' simple POST (bypasses Preflight OPTIONS check)
-  //    This is crucial for n8n on Render which often blocks OPTIONS requests from browsers.
-  
-  const payload = JSON.stringify({ id });
+  // Send ID as both query param and raw text body to ensure n8n picks it up correctly
+  // irrespective of how the webhook node is configured (JSON vs Raw).
+  const urlWithParam = `${API_CONFIG.DELETE_PROPERTY}?id=${encodeURIComponent(id)}`;
 
   try {
     console.log(`Sending delete request for ID: ${id}`);
     
-    // First attempt: Standard
-    const response = await fetchWithTimeout(API_CONFIG.DELETE_PROPERTY, {
+    // Attempt 1: Standard POST with raw string body (Content-Type: text/plain)
+    // This avoids sending {"id": "..."} JSON object.
+    await fetchWithTimeout(urlWithParam, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: payload
-    }, 5000); // Short timeout for first attempt
+      headers: { 'Content-Type': 'text/plain' },
+      body: id
+    }, 5000);
 
-    if (!response.ok) throw new Error('Standard fetch failed');
-    
     return true;
   } catch (error) {
     console.warn('Standard delete failed, attempting fallback (no-cors)...', error);
     
     try {
         // Fallback: Simple Request (No Preflight)
-        // Note: Response will be opaque (status 0), so we can't check .ok
-        await fetch(API_CONFIG.DELETE_PROPERTY, {
+        // Note: Response will be opaque (status 0)
+        await fetch(urlWithParam, {
             method: 'POST',
             mode: 'no-cors', 
             headers: { 
                 'Content-Type': 'text/plain' 
             },
-            body: payload,
+            body: id,
             keepalive: true 
         });
         console.log('Fallback delete request sent');
         return true;
     } catch (e) {
         console.error('All delete attempts failed', e);
-        return true; // Still return true as local delete succeeded
+        return true; 
     }
   }
 };
