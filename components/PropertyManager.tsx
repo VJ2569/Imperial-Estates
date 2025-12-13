@@ -210,6 +210,7 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
       {/* Modals */}
       {showForm && !readOnly && (
         <PropertyForm
+          key={editingProperty ? editingProperty.id : generatedId}
           initialData={editingProperty}
           newId={generatedId}
           onSave={handleCreateOrUpdate}
