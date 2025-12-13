@@ -48,7 +48,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
 
   return (
     <div className={`bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full group ${isSelectedForCompare ? 'ring-2 ring-blue-500 border-blue-500' : 'border-gray-100'}`}>
-      <div className={`p-4 relative overflow-hidden ${hasImage ? '' : 'bg-gradient-to-r from-slate-800 to-slate-900'}`} style={headerStyle}>
+      <div className={`h-48 p-4 relative overflow-hidden ${hasImage ? '' : 'bg-gradient-to-r from-slate-800 to-slate-900'}`} style={headerStyle}>
         {!hasImage && <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-xl" />}
         <div className="flex justify-between items-start relative z-10">
           <div className="max-w-[70%]">
@@ -60,8 +60,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
           </span>
         </div>
         
-        {/* Compare Checkbox */}
-        <div className="absolute bottom-3 left-3 z-10">
+        {/* Compare Checkbox - Moved to bottom right to prevent overlap with ID */}
+        <div className="absolute bottom-3 right-3 z-10">
             <label className={`flex items-center gap-2 px-2 py-1 rounded-lg backdrop-blur-md border cursor-pointer transition-colors ${isSelectedForCompare ? 'bg-blue-600/90 text-white border-blue-500' : 'bg-black/40 text-white border-white/20 hover:bg-black/60'}`}>
                 <input 
                     type="checkbox" 
