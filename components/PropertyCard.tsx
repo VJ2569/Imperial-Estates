@@ -8,9 +8,21 @@ interface PropertyCardProps {
   onDelete: (id: string) => void;
   onViewDetails: (property: Property) => void;
   readOnly?: boolean;
+  onToggleCompare?: (property: Property) => void;
+  isSelectedForCompare?: boolean;
+  disableCompare?: boolean;
 }
 
-const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete, onViewDetails, readOnly = false }) => {
+const PropertyCard: React.FC<PropertyCardProps> = ({ 
+  property, 
+  onEdit, 
+  onDelete, 
+  onViewDetails, 
+  readOnly = false,
+  onToggleCompare,
+  isSelectedForCompare = false,
+  disableCompare = false
+}) => {
   const formatPrice = (price: number, isRental: boolean) => {
     if (isRental) {
       return `₹${price.toLocaleString('en-IN')}/mo`;
@@ -35,7 +47,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
   } : {};
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full group">
+    <div className={`bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full group ${isSelectedForCompare ? 'ring-2 ring-blue-500 border-blue-500' : 'border-gray-100'}`}>
       <div className={`p-4 relative overflow-hidden ${hasImage ? '' : 'bg-gradient-to-r from-slate-800 to-slate-900'}`} style={headerStyle}>
         {!hasImage && <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-xl" />}
         <div className="flex justify-between items-start relative z-10">
@@ -46,6 +58,23 @@ const PropertyCard: React.FC<PropertyCardProps> = ({ property, onEdit, onDelete,
           <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold capitalize shadow-sm ${getStatusColor(property.status)}`}>
             {property.status}
           </span>
+        </div>
+        
+        {/* Compare Checkbox */}
+        <div className="absolute bottom-3 left-3 z-10">
+            <label className={`flex items-center gap-2 px-2 py-1 rounded-lg backdrop-blur-md border cursor-pointer transition-colors ${isSelectedForCompare ? 'bg-blue-600/90 text-white border-blue-500' : 'bg-black/40 text-white border-white/20 hover:bg-black/60'}`}>
+                <input 
+                    type="checkbox" 
+                    checked={isSelectedForCompare}
+                    disabled={!isSelectedForCompare && disableCompare}
+                    onChange={(e) => {
+                        e.stopPropagation();
+                        if (onToggleCompare) onToggleCompare(property);
+                    }}
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer disabled:opacity-50"
+                />
+                <span className="text-xs font-medium">Compare</span>
+            </label>
         </div>
       </div>
 
