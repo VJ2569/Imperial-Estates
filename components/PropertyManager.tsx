@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Plus, LayoutGrid, Filter, AlertTriangle, Share2 } from 'lucide-react';
+import { Search, Plus, LayoutGrid, Filter, AlertTriangle, Share2, Scale } from 'lucide-react';
 import PropertyCard from './PropertyCard';
 import PropertyForm from './PropertyForm';
 import PropertyDetails from './PropertyDetails';
+import PropertyComparison from './PropertyComparison';
 import { fetchProperties, createProperty, updateProperty, deleteProperty } from '../services/propertyService';
 import { Property, PropertyType } from '../types';
 
@@ -23,6 +24,10 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
   const [editingProperty, setEditingProperty] = useState<Property | null>(null);
   const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  
+  // Comparison States
+  const [compareList, setCompareList] = useState<Property[]>([]);
+  const [showComparison, setShowComparison] = useState(false);
   
   // State for generated ID to ensure it remains stable during form interaction
   const [generatedId, setGeneratedId] = useState('');
@@ -78,8 +83,7 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
   const openAddForm = () => {
     if (readOnly) return;
     setEditingProperty(null);
-    // Generate a robust unique ID: PROP-{timestamp}-{random}
-    // ensuring uniqueness for webhook updates and DB consistency
+    // Generate a robust unique ID
     const uniqueId = `PROP-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 1000).toString().padStart(3, '0')}`;
     setGeneratedId(uniqueId);
     setShowForm(true);
@@ -92,6 +96,18 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
     setShowForm(true);
   };
 
+  const toggleCompare = (property: Property) => {
+      setCompareList(prev => {
+          const exists = prev.find(p => p.id === property.id);
+          if (exists) {
+              return prev.filter(p => p.id !== property.id);
+          } else {
+              if (prev.length >= 3) return prev; // Max 3
+              return [...prev, property];
+          }
+      });
+  };
+
   const filteredProperties = properties.filter(prop => {
     const matchesType = selectedType === 'all' || prop.type === selectedType;
     const matchesSearch = 
@@ -102,7 +118,7 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
   });
 
   return (
-    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+    <div className="p-4 md:p-6 lg:p-8 max-w-7xl mx-auto w-full relative">
       {/* Header Controls */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
          <div>
@@ -167,45 +183,59 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
           </div>
       </div>
 
-        {/* Content */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="bg-white h-96 rounded-xl shadow-sm border border-gray-100"></div>
-            ))}
+      {/* Content */}
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-pulse">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-white h-96 rounded-xl shadow-sm border border-gray-100"></div>
+          ))}
+        </div>
+      ) : filteredProperties.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 pb-24">
+          {filteredProperties.map(property => (
+            <PropertyCard
+              key={property.id}
+              property={property}
+              onEdit={openEditForm}
+              onDelete={requestDelete}
+              onViewDetails={setSelectedProperty}
+              readOnly={readOnly}
+              onToggleCompare={toggleCompare}
+              isSelectedForCompare={compareList.some(p => p.id === property.id)}
+              disableCompare={compareList.length >= 3}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-16 text-center flex flex-col items-center justify-center">
+          <div className="bg-gray-50 p-4 rounded-full mb-4">
+             <LayoutGrid size={48} className="text-gray-300" />
           </div>
-        ) : filteredProperties.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {filteredProperties.map(property => (
-              <PropertyCard
-                key={property.id}
-                property={property}
-                onEdit={openEditForm}
-                onDelete={requestDelete}
-                onViewDetails={setSelectedProperty}
-                readOnly={readOnly}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 md:p-16 text-center flex flex-col items-center justify-center">
-            <div className="bg-gray-50 p-4 rounded-full mb-4">
-               <LayoutGrid size={48} className="text-gray-300" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">No properties found</h3>
-            <p className="text-gray-500 max-w-md mx-auto text-sm md:text-base">
-              We couldn't find any properties matching your search.
-            </p>
-            <button 
-              onClick={() => { setSearchQuery(''); setSelectedType('all'); }}
-              className="mt-6 text-blue-600 font-medium hover:underline"
-            >
-              Clear all filters
-            </button>
-          </div>
-        )}
+          <h3 className="text-xl font-bold text-gray-800 mb-2">No properties found</h3>
+          <p className="text-gray-500 max-w-md mx-auto text-sm md:text-base">
+            We couldn't find any properties matching your search.
+          </p>
+          <button 
+            onClick={() => { setSearchQuery(''); setSelectedType('all'); }}
+            className="mt-6 text-blue-600 font-medium hover:underline"
+          >
+            Clear all filters
+          </button>
+        </div>
+      )}
 
-      {/* Voice Assistant - Removed as per request */}
+      {/* Floating Compare Button */}
+      {compareList.length > 0 && (
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 animate-in slide-in-from-bottom-10 fade-in">
+              <button
+                  onClick={() => setShowComparison(true)}
+                  className="bg-slate-900 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 hover:bg-slate-800 transition-transform hover:scale-105 active:scale-95"
+              >
+                  <Scale size={20} />
+                  <span className="font-bold">Compare ({compareList.length})</span>
+              </button>
+          </div>
+      )}
 
       {/* Modals */}
       {showForm && !readOnly && (
@@ -226,6 +256,13 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
           onEdit={() => openEditForm(selectedProperty)}
           readOnly={readOnly}
         />
+      )}
+
+      {showComparison && (
+          <PropertyComparison 
+              properties={compareList} 
+              onClose={() => setShowComparison(false)} 
+          />
       )}
 
       {/* Delete Confirmation Modal */}
