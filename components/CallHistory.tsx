@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Play, FileText, CheckCircle2, XCircle, RefreshCcw, User, X, Filter } from 'lucide-react';
-import { fetchVapiCalls } from '../services/vapiService';
+import { Play, FileText, CheckCircle2, XCircle, RefreshCcw, User, X, Filter, Settings } from 'lucide-react';
+import { fetchVapiCalls, getStoredVapiCalls } from '../services/vapiService';
 import { VapiCall, Assistant } from '../types';
 import { format } from 'date-fns';
 
@@ -14,9 +14,17 @@ const CallHistory: React.FC = () => {
   const [selectedAssistantId, setSelectedAssistantId] = useState<string>('all');
 
   useEffect(() => {
-    loadCalls();
     loadAssistants();
   }, []);
+
+  // Reload calls whenever assistants change or on mount
+  useEffect(() => {
+    if (assistants.length > 0) {
+        loadCalls();
+    } else {
+        setLoading(false); // Stop loading if no assistants to fetch for
+    }
+  }, [assistants]);
 
   const loadAssistants = () => {
       const storedIds = localStorage.getItem('vapi_assistant_ids');
@@ -33,10 +41,27 @@ const CallHistory: React.FC = () => {
               }
           } catch (e) { console.error(e); }
       }
+      
+      // Fallback: check legacy single ID if list is empty
+      if (!storedIds || JSON.parse(storedIds).length === 0) {
+          const legacyId = localStorage.getItem('vapi_assistant_id');
+          if (legacyId && !legacyId.includes('YOUR_VAPI')) {
+              setAssistants([{ id: legacyId, name: 'My Assistant' }]);
+          }
+      }
   };
 
   const loadCalls = async () => {
-    setLoading(true);
+    // 1. Optimistic load from cache
+    const cached = getStoredVapiCalls();
+    if (cached.length > 0) {
+        setCalls(cached);
+        setLoading(false);
+    } else {
+        setLoading(true);
+    }
+
+    // 2. Network refresh
     const data = await fetchVapiCalls();
     setCalls(data);
     setLoading(false);
@@ -55,33 +80,44 @@ const CallHistory: React.FC = () => {
       return assistant ? assistant.name : `${id.substring(0, 8)}...`;
   };
 
-  // Determine which IDs to show in dropdown
-  // If assistants are configured in settings, ONLY show those.
-  // If no assistants are configured, show all IDs found in the call history (fallback).
-  const uniqueAssistantIdsInCalls = Array.from(new Set(calls.map(c => c.assistantId).filter(Boolean)));
-  
-  const dropdownIds = assistants.length > 0 
-      ? assistants.map(a => a.id)
-      : uniqueAssistantIdsInCalls;
-
   // Filter calls based on selected assistant and configuration
+  // STRICT MODE: Only show calls matching the configured assistants
   const filteredCalls = calls.filter(call => {
-      // 1. If specific assistant is selected in dropdown
-      if (selectedAssistantId !== 'all') {
-          return call.assistantId === selectedAssistantId;
-      }
-      
-      // 2. If 'All' is selected but we have a configured list of assistants, 
-      // ONLY show calls belonging to those configured assistants.
+      // 1. If we have configured assistants, strictly filter by them
       if (assistants.length > 0) {
-          return assistants.some(a => a.id === call.assistantId);
+          const isConfiguredAssistant = assistants.some(a => a.id === call.assistantId);
+          if (!isConfiguredAssistant) return false;
+
+          // 2. If specific assistant is selected in dropdown
+          if (selectedAssistantId !== 'all') {
+              return call.assistantId === selectedAssistantId;
+          }
+          return true;
       }
       
-      // 3. If no assistants configured, show everything
-      return true;
+      // If no assistants configured, we show nothing (handled by early return below)
+      return false;
   });
 
-  const showAssistantFilter = assistants.length > 1 || (assistants.length === 0 && uniqueAssistantIdsInCalls.length > 1);
+  const showAssistantFilter = assistants.length > 1;
+
+  // If no assistants are configured, show a prompt
+  if (assistants.length === 0 && !loading) {
+      return (
+        <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-6">Receptionist Logs</h2>
+            <div className="bg-white rounded-xl p-8 md:p-16 text-center border border-gray-200 shadow-sm flex flex-col items-center">
+                <div className="w-16 h-16 bg-slate-100 text-slate-500 rounded-full flex items-center justify-center mb-6">
+                    <Settings size={32} />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Configuration Required</h3>
+                <p className="text-gray-500 max-w-md mx-auto mb-8">
+                    To view call logs, please configure at least one <strong>Assistant ID</strong> in the settings menu.
+                </p>
+            </div>
+        </div>
+      );
+  }
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
@@ -103,16 +139,11 @@ const CallHistory: React.FC = () => {
                         className="pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer shadow-sm min-w-[180px]"
                     >
                         <option value="all">All Assistants</option>
-                        {dropdownIds.map(id => {
-                            if (!id) return null;
-                            const name = getAssistantName(id as string);
-                            const isPrimary = assistants.length > 0 && id === assistants[0].id;
-                            return (
-                                <option key={id as string} value={id as string}>
-                                    {name} {isPrimary ? '(Primary)' : ''}
-                                </option>
-                            );
-                        })}
+                        {assistants.map(assistant => (
+                            <option key={assistant.id} value={assistant.id}>
+                                {assistant.name}
+                            </option>
+                        ))}
                     </select>
                 </div>
             )}
@@ -140,11 +171,7 @@ const CallHistory: React.FC = () => {
            </div>
            <h3 className="text-lg font-bold text-gray-900">No Calls Found</h3>
            <p className="text-gray-500 max-w-md mx-auto mt-2 text-sm">
-             {selectedAssistantId !== 'all' 
-                ? "No calls found for this specific assistant." 
-                : assistants.length > 0 
-                    ? "No calls found for your configured assistants." 
-                    : "Check if your Private Key is configured correctly in Settings or if there are any calls in your history."}
+             No calls found for your configured assistants.
            </p>
         </div>
       ) : (
