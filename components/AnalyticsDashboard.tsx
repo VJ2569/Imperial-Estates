@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { fetchProperties } from '../services/propertyService';
-import { fetchVapiCalls } from '../services/vapiService';
+import { fetchProperties, getStoredProperties } from '../services/propertyService';
+import { fetchVapiCalls, getStoredVapiCalls } from '../services/vapiService';
 import { Property, VapiCall } from '../types';
 import { TrendingUp, Home, Phone, DollarSign } from 'lucide-react';
 
@@ -14,7 +14,19 @@ const AnalyticsDashboard: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      setLoading(true);
+      // 1. Load Cached Data Immediately
+      const cachedProps = getStoredProperties();
+      const cachedCalls = getStoredVapiCalls();
+      
+      if (cachedProps.length > 0 || cachedCalls.length > 0) {
+          setProperties(cachedProps);
+          setCalls(cachedCalls);
+          setLoading(false);
+      } else {
+          setLoading(true);
+      }
+
+      // 2. Fetch Fresh Data in Background
       const [propData, callData] = await Promise.all([
         fetchProperties(),
         fetchVapiCalls()
