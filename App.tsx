@@ -1,36 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Check, Menu } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import PropertyManager from './components/PropertyManager';
 import CallHistory from './components/CallHistory';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import Settings from './components/Settings';
+import VoiceAssistant from './components/VoiceAssistant';
 
-function App() {
+// Layout Component that handles Sidebar and common UI
+const DashboardLayout = ({ isClientView }: { isClientView: boolean }) => {
   const [activeTab, setActiveTab] = useState<'properties' | 'receptionist' | 'analytics' | 'settings'>('properties');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [isClientView, setIsClientView] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
 
-  useEffect(() => {
-    // Check URL parameters for client view mode
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('view') === 'client') {
-      setIsClientView(true);
-      setActiveTab('properties');
-    }
-  }, []);
-
   const handleShare = () => {
-    const url = `${window.location.origin}${window.location.pathname}?view=client`;
+    // Generate the clean client URL
+    const url = `${window.location.origin}/client`;
     navigator.clipboard.writeText(url);
     setShowShareToast(true);
     setTimeout(() => setShowShareToast(false), 3000);
   };
 
   const renderContent = () => {
-    // Force PropertyManager in client view
+    // Enforce view mode
     if (isClientView) {
       return <PropertyManager readOnly={true} />;
     }
@@ -86,8 +80,22 @@ function App() {
         )}
 
         {renderContent()}
+
+        {/* Add Voice Assistant only for Admin View */}
+        {!isClientView && <VoiceAssistant />}
       </main>
     </div>
+  );
+};
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/admin" element={<DashboardLayout isClientView={false} />} />
+      <Route path="/client" element={<DashboardLayout isClientView={true} />} />
+      {/* Default redirect to client view for safety */}
+      <Route path="*" element={<Navigate to="/client" replace />} />
+    </Routes>
   );
 }
 
