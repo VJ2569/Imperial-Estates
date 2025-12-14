@@ -6,7 +6,6 @@ import PropertyManager from './components/PropertyManager';
 import CallHistory from './components/CallHistory';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import Settings from './components/Settings';
-import VoiceAssistant from './components/VoiceAssistant';
 
 // Layout Component that handles Sidebar and common UI
 const DashboardLayout = ({ isClientView }: { isClientView: boolean }) => {
@@ -80,9 +79,6 @@ const DashboardLayout = ({ isClientView }: { isClientView: boolean }) => {
         )}
 
         {renderContent()}
-
-        {/* Add Voice Assistant only for Admin View */}
-        {!isClientView && <VoiceAssistant />}
       </main>
     </div>
   );
