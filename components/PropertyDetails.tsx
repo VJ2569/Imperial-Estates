@@ -29,7 +29,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property, onClose, on
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 z-50" onClick={onClose}>
       <div 
-        className="bg-white w-full h-full md:h-auto md:max-h-[90vh] md:max-w-4xl md:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 md:fade-in md:zoom-in duration-200 flex flex-col"
+        className="bg-white dark:bg-slate-900 w-full h-full md:h-auto md:max-h-[90vh] md:max-w-4xl md:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 md:fade-in md:zoom-in duration-200 flex flex-col border border-transparent dark:border-slate-800"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Banner Header */}
@@ -59,24 +59,24 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property, onClose, on
 
         <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1">
           {/* Key Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8 pb-8 border-b border-gray-100">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8 pb-8 border-b border-gray-100 dark:border-slate-800">
             <div>
-              <p className="text-sm text-gray-500 mb-1">Price</p>
-              <p className="text-lg md:text-xl font-bold text-emerald-600 truncate">{formatPrice(property.price, property.isRental)}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Price</p>
+              <p className="text-lg md:text-xl font-bold text-emerald-600 dark:text-emerald-500 truncate">{formatPrice(property.price, property.isRental)}</p>
             </div>
              <div>
-              <p className="text-sm text-gray-500 mb-1">Type</p>
-              <p className="text-base md:text-lg font-semibold text-gray-800 capitalize">{property.type}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Type</p>
+              <p className="text-base md:text-lg font-semibold text-gray-800 dark:text-gray-200 capitalize">{property.type}</p>
             </div>
              <div>
-              <p className="text-sm text-gray-500 mb-1">Area</p>
-              <p className="text-base md:text-lg font-semibold text-gray-800 flex items-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Area</p>
+              <p className="text-base md:text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center">
                  <Square size={16} className="mr-1 text-blue-500"/> {property.area} sqft
               </p>
             </div>
              <div>
-              <p className="text-sm text-gray-500 mb-1">Availability</p>
-              <p className="text-base md:text-lg font-semibold text-gray-800 flex items-center">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Availability</p>
+              <p className="text-base md:text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center">
                  <Calendar size={16} className="mr-1 text-blue-500"/> {property.availableFrom}
               </p>
             </div>
@@ -88,10 +88,10 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property, onClose, on
                {/* Image Gallery */}
                {hasImages && property.images && property.images.length > 0 && (
                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-3">Gallery</h3>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Gallery</h3>
                     <div className="grid grid-cols-2 gap-2">
                        {property.images.map((img, idx) => (
-                         <div key={idx} className={`rounded-lg overflow-hidden border border-gray-200 aspect-video group relative ${idx === 0 && property.images && property.images.length % 2 !== 0 ? 'col-span-2' : ''}`}>
+                         <div key={idx} className={`rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 aspect-video group relative ${idx === 0 && property.images && property.images.length % 2 !== 0 ? 'col-span-2' : ''}`}>
                             <img src={img} alt={`Property view ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
                          </div>
                        ))}
@@ -101,18 +101,18 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property, onClose, on
 
                {/* Location */}
                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center">
                     <MapPin className="mr-2 text-blue-500" size={20}/> Location
                   </h3>
-                  <p className="text-gray-700 bg-gray-50 p-4 rounded-lg border border-gray-100">
+                  <p className="text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-slate-800 p-4 rounded-lg border border-gray-100 dark:border-slate-700">
                     {property.location}
                   </p>
                </div>
 
                {/* Description */}
                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-3">Description</h3>
-                  <p className="text-gray-600 leading-relaxed whitespace-pre-line text-sm md:text-base">
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Description</h3>
+                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line text-sm md:text-base">
                     {property.description || "No description provided."}
                   </p>
                </div>
@@ -120,10 +120,10 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property, onClose, on
                {/* Amenities */}
                {features.length > 0 && (
                 <div>
-                   <h3 className="text-lg font-bold text-gray-900 mb-3">Features & Amenities</h3>
+                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Features & Amenities</h3>
                    <div className="flex flex-wrap gap-2">
                       {features.map((feature, idx) => (
-                        <span key={idx} className="inline-flex items-center px-3 py-1.5 rounded-full text-xs md:text-sm font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                        <span key={idx} className="inline-flex items-center px-3 py-1.5 rounded-full text-xs md:text-sm font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
                           <CheckCircle2 size={14} className="mr-1.5" />
                           {feature}
                         </span>
@@ -135,22 +135,22 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property, onClose, on
 
             {/* Sidebar Stats */}
             <div className="md:col-span-1 space-y-4">
-              <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-                <h4 className="font-semibold text-gray-900 mb-4">Property Config</h4>
+              <div className="bg-gray-50 dark:bg-slate-800 rounded-xl p-5 border border-gray-100 dark:border-slate-700">
+                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Property Config</h4>
                 <div className="space-y-3">
                    {property.bedrooms > 0 && (
                      <div className="flex justify-between items-center text-sm">
-                       <span className="text-gray-500 flex items-center"><Bed size={16} className="mr-2"/> Bedrooms</span>
-                       <span className="font-medium">{property.bedrooms}</span>
+                       <span className="text-gray-500 dark:text-gray-400 flex items-center"><Bed size={16} className="mr-2"/> Bedrooms</span>
+                       <span className="font-medium text-gray-900 dark:text-white">{property.bedrooms}</span>
                      </div>
                    )}
                    <div className="flex justify-between items-center text-sm">
-                       <span className="text-gray-500 flex items-center"><Bath size={16} className="mr-2"/> Bathrooms</span>
-                       <span className="font-medium">{property.bathrooms}</span>
+                       <span className="text-gray-500 dark:text-gray-400 flex items-center"><Bath size={16} className="mr-2"/> Bathrooms</span>
+                       <span className="font-medium text-gray-900 dark:text-white">{property.bathrooms}</span>
                    </div>
-                   <div className="flex justify-between items-center text-sm pt-3 border-t border-gray-200 mt-2">
-                       <span className="text-gray-500">Rental?</span>
-                       <span className={`px-2 py-0.5 rounded text-xs font-semibold ${property.isRental ? 'bg-blue-100 text-blue-700' : 'bg-gray-200 text-gray-600'}`}>
+                   <div className="flex justify-between items-center text-sm pt-3 border-t border-gray-200 dark:border-slate-700 mt-2">
+                       <span className="text-gray-500 dark:text-gray-400">Rental?</span>
+                       <span className={`px-2 py-0.5 rounded text-xs font-semibold ${property.isRental ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-300'}`}>
                          {property.isRental ? 'Yes' : 'No'}
                        </span>
                    </div>
@@ -160,7 +160,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property, onClose, on
                {!readOnly && (
                  <button 
                   onClick={onEdit}
-                  className="w-full bg-amber-400 hover:bg-amber-500 text-amber-950 font-semibold py-3 px-4 rounded-xl transition-colors shadow-lg shadow-amber-100"
+                  className="w-full bg-amber-400 hover:bg-amber-500 text-amber-950 font-semibold py-3 px-4 rounded-xl transition-colors shadow-lg shadow-amber-100 dark:shadow-amber-900/20"
                  >
                    Edit Property
                  </button>
