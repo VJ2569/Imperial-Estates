@@ -28,6 +28,11 @@ const saveStoredProperties = (properties: Property[]) => {
 // Initialize local state: Try LocalStorage first, then fall back to empty array.
 let localProperties: Property[] = loadStoredProperties() || [];
 
+// Export this helper so components can sync read
+export const getStoredProperties = (): Property[] => {
+  return localProperties;
+};
+
 // --- API Helpers ---
 
 // Increased timeout to 30000ms (30s) to allow n8n on Render time to wake up from cold start
