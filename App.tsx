@@ -91,10 +91,10 @@ const DashboardLayout = ({ isClientView }: { isClientView: boolean }) => {
 function App() {
   return (
     <Routes>
-      <Route path="/admin" element={<DashboardLayout isClientView={false} />} />
+      <Route path="/aegis" element={<DashboardLayout isClientView={false} />} />
       <Route path="/client" element={<DashboardLayout isClientView={true} />} />
-      {/* Default redirect to admin view  */}
-      <Route path="*" element={<Navigate to="/admin" replace />} />
+      {/* Default redirect to aegis view  */}
+      <Route path="*" element={<Navigate to="/aegis" replace />} />
     </Routes>
   );
 }
