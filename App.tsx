@@ -93,8 +93,8 @@ function App() {
     <Routes>
       <Route path="/admin" element={<DashboardLayout isClientView={false} />} />
       <Route path="/client" element={<DashboardLayout isClientView={true} />} />
-      {/* Default redirect to client view for safety */}
-      <Route path="*" element={<Navigate to="/client" replace />} />
+      {/* Default redirect to admin view  */}
+      <Route path="*" element={<Navigate to="/admin" replace />} />
     </Routes>
   );
 }
