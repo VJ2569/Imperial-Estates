@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Check, Menu } from 'lucide-react';
 import Sidebar from './components/Sidebar';
@@ -13,6 +13,19 @@ const DashboardLayout = ({ isClientView }: { isClientView: boolean }) => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showShareToast, setShowShareToast] = useState(false);
+
+  // Initialize Theme on Mount
+  useEffect(() => {
+    const storedGeneral = localStorage.getItem('app_general_config');
+    if (storedGeneral) {
+      const config = JSON.parse(storedGeneral);
+      if (config.appearance === 'dark') {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, []);
 
   const handleShare = () => {
     // Generate the clean client URL
@@ -43,7 +56,7 @@ const DashboardLayout = ({ isClientView }: { isClientView: boolean }) => {
   };
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col md:flex-row overflow-hidden">
+    <div className="h-screen bg-gray-50 dark:bg-slate-950 flex flex-col md:flex-row overflow-hidden transition-colors duration-200">
       {/* Mobile Header */}
       <div className="md:hidden bg-slate-900 text-white p-4 flex items-center justify-between shrink-0 z-30 shadow-md">
         <div className="flex items-center gap-3">
