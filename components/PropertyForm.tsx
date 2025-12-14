@@ -133,19 +133,19 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
       }
   };
 
-  const inputClass = "w-full px-4 py-2.5 bg-slate-50 focus:bg-white border border-slate-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400";
+  const inputClass = "w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800 focus:bg-white dark:focus:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 text-slate-900 dark:text-white";
 
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 z-50">
-      <div className="bg-white w-full h-full md:h-auto md:max-h-[90vh] md:max-w-4xl md:rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 md:fade-in md:zoom-in duration-200">
+      <div className="bg-white dark:bg-slate-900 w-full h-full md:h-auto md:max-h-[90vh] md:max-w-4xl md:rounded-2xl shadow-2xl flex flex-col animate-in slide-in-from-bottom-10 md:fade-in md:zoom-in duration-200 border border-transparent dark:border-slate-800">
         
         {/* Header */}
-        <div className="px-4 md:px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50 md:rounded-t-2xl shrink-0">
+        <div className="px-4 md:px-6 py-4 border-b border-gray-100 dark:border-slate-800 flex justify-between items-center bg-gray-50 dark:bg-slate-950 md:rounded-t-2xl shrink-0">
           <div>
-            <h2 className="text-lg md:text-xl font-bold text-slate-800">{initialData ? 'Edit Property' : 'Add New Property'}</h2>
-            <p className="text-slate-500 text-xs md:text-sm mt-0.5">Fill in the details below to {initialData ? 'update' : 'create'} a listing.</p>
+            <h2 className="text-lg md:text-xl font-bold text-slate-800 dark:text-white">{initialData ? 'Edit Property' : 'Add New Property'}</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-xs md:text-sm mt-0.5">Fill in the details below to {initialData ? 'update' : 'create'} a listing.</p>
           </div>
-          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200 transition-colors">
+          <button onClick={onCancel} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-slate-800 transition-colors">
             <X size={24} />
           </button>
         </div>
@@ -156,18 +156,18 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
             
             {/* ID - Read Only */}
             <div className="col-span-1 md:col-span-2">
-               <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Property ID</label>
-               <div className="bg-slate-200 text-slate-700 px-4 py-2.5 rounded-lg font-mono text-sm border border-slate-300 w-full md:w-1/3 shadow-inner">
+               <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5">Property ID</label>
+               <div className="bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-4 py-2.5 rounded-lg font-mono text-sm border border-slate-300 dark:border-slate-700 w-full md:w-1/3 shadow-inner">
                  {id}
                </div>
             </div>
 
             <div className="col-span-1 md:col-span-2">
-               <h3 className="text-sm font-bold text-slate-900 border-b pb-2 mb-4">Basic Information</h3>
+               <h3 className="text-sm font-bold text-slate-900 dark:text-white border-b border-gray-200 dark:border-slate-800 pb-2 mb-4">Basic Information</h3>
             </div>
 
             <div className="col-span-1 md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Title <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Title <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 value={formData.title}
@@ -179,7 +179,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Type</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Type</label>
               <select
                 value={formData.type}
                 onChange={(e) => handleChange('type', e.target.value as PropertyType)}
@@ -192,7 +192,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Status</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Status</label>
               <select
                 value={formData.status}
                 onChange={(e) => handleChange('status', e.target.value as PropertyStatus)}
@@ -205,7 +205,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
             </div>
 
             <div className="col-span-1 md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Location <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Location <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 value={formData.location}
@@ -217,11 +217,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
             </div>
 
              <div className="col-span-1 md:col-span-2 mt-2">
-               <h3 className="text-sm font-bold text-slate-900 border-b pb-2 mb-4">Details & Financials</h3>
+               <h3 className="text-sm font-bold text-slate-900 dark:text-white border-b border-gray-200 dark:border-slate-800 pb-2 mb-4">Details & Financials</h3>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Price (₹) <span className="text-red-500">*</span></label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Price (₹) <span className="text-red-500">*</span></label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">₹</span>
                 <input
@@ -236,7 +236,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Area (sqft)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Area (sqft)</label>
               <input
                 type="number"
                 value={formData.area || ''}
@@ -247,7 +247,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Bedrooms</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Bedrooms</label>
               <input
                 type="number"
                 value={formData.bedrooms || ''}
@@ -258,7 +258,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Bathrooms</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Bathrooms</label>
               <input
                 type="number"
                 value={formData.bathrooms || ''}
@@ -269,7 +269,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Available From</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Available From</label>
               <input
                 type="date"
                 value={formData.availableFrom}
@@ -279,35 +279,35 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
             </div>
 
              <div className="flex items-end pb-3">
-              <label className="flex items-center cursor-pointer select-none bg-slate-50 px-4 py-2.5 rounded-lg border border-slate-200 w-full hover:bg-slate-100 transition-colors">
+              <label className="flex items-center cursor-pointer select-none bg-slate-50 dark:bg-slate-800 px-4 py-2.5 rounded-lg border border-slate-200 dark:border-slate-700 w-full hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
                 <input
                   type="checkbox"
                   checked={formData.isRental}
                   onChange={(e) => handleChange('isRental', e.target.checked)}
                   className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <span className="ml-3 text-sm font-medium text-slate-700">Is this a rental property?</span>
+                <span className="ml-3 text-sm font-medium text-slate-700 dark:text-slate-300">Is this a rental property?</span>
               </label>
             </div>
 
             <div className="col-span-1 md:col-span-2 mt-2">
-               <h3 className="text-sm font-bold text-slate-900 border-b pb-2 mb-4">Media & Documents</h3>
+               <h3 className="text-sm font-bold text-slate-900 dark:text-white border-b border-gray-200 dark:border-slate-800 pb-2 mb-4">Media & Documents</h3>
             </div>
 
             {/* Image Upload Section */}
             <div className="col-span-1 md:col-span-2 space-y-3">
-               <label className="block text-sm font-medium text-slate-700">Property Images (Max 5)</label>
+               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">Property Images (Max 5)</label>
                
                <div 
-                 className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${dragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-slate-50 hover:bg-slate-100'}`}
+                 className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${dragActive ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                  onDragEnter={(e) => handleDrag(e, setDragActive)}
                  onDragLeave={(e) => handleDrag(e, setDragActive)}
                  onDragOver={(e) => handleDrag(e, setDragActive)}
                  onDrop={(e) => handleDrop(e, 'image', setDragActive)}
                >
                   <UploadCloud size={32} className={`mx-auto mb-3 ${dragActive ? 'text-blue-500' : 'text-slate-400'}`} />
-                  <p className="text-sm text-slate-600 mb-1">Drag and drop images here, or</p>
-                  <label className="cursor-pointer text-blue-600 hover:text-blue-700 font-semibold text-sm">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Drag and drop images here, or</p>
+                  <label className="cursor-pointer text-blue-600 dark:text-blue-400 hover:text-blue-700 font-semibold text-sm">
                       browse files
                       <input 
                         type="file" 
@@ -324,7 +324,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
                {formData.images && formData.images.length > 0 && (
                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-4">
                        {formData.images.map((img, idx) => (
-                           <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200">
+                           <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700">
                                <img src={img} alt={`Preview ${idx}`} className="w-full h-full object-cover" />
                                <button 
                                  type="button"
@@ -341,18 +341,18 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
 
             {/* PDF Upload Section */}
             <div className="col-span-1 md:col-span-2 space-y-3 mt-4">
-               <label className="block text-sm font-medium text-slate-700">PDF Documents (Max 3)</label>
+               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">PDF Documents (Max 3)</label>
                
                <div 
-                 className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${pdfDragActive ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-slate-50 hover:bg-slate-100'}`}
+                 className={`border-2 border-dashed rounded-xl p-6 text-center transition-all ${pdfDragActive ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'border-gray-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700'}`}
                  onDragEnter={(e) => handleDrag(e, setPdfDragActive)}
                  onDragLeave={(e) => handleDrag(e, setPdfDragActive)}
                  onDragOver={(e) => handleDrag(e, setPdfDragActive)}
                  onDrop={(e) => handleDrop(e, 'pdf', setPdfDragActive)}
                >
                   <FileText size={32} className={`mx-auto mb-3 ${pdfDragActive ? 'text-blue-500' : 'text-slate-400'}`} />
-                  <p className="text-sm text-slate-600 mb-1">Drag and drop PDFs here, or</p>
-                  <label className="cursor-pointer text-blue-600 hover:text-blue-700 font-semibold text-sm">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">Drag and drop PDFs here, or</p>
+                  <label className="cursor-pointer text-blue-600 dark:text-blue-400 hover:text-blue-700 font-semibold text-sm">
                       browse files
                       <input 
                         type="file" 
@@ -369,12 +369,12 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
                {formData.pdfs && formData.pdfs.length > 0 && (
                    <div className="space-y-2 mt-4">
                        {formData.pdfs.map((pdf, idx) => (
-                           <div key={idx} className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
+                           <div key={idx} className="flex items-center justify-between p-3 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 rounded-lg">
                                <div className="flex items-center gap-3">
-                                   <div className="bg-red-50 p-2 rounded text-red-500">
+                                   <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded text-red-500 dark:text-red-400">
                                        <FileText size={20} />
                                    </div>
-                                   <div className="text-sm font-medium text-slate-700">
+                                   <div className="text-sm font-medium text-slate-700 dark:text-slate-300">
                                        Document {idx + 1}
                                    </div>
                                </div>
@@ -392,11 +392,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
             </div>
 
              <div className="col-span-1 md:col-span-2 mt-2">
-               <h3 className="text-sm font-bold text-slate-900 border-b pb-2 mb-4">Marketing</h3>
+               <h3 className="text-sm font-bold text-slate-900 dark:text-white border-b border-gray-200 dark:border-slate-800 pb-2 mb-4">Marketing</h3>
             </div>
 
             <div className="col-span-1 md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Description</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Description</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => handleChange('description', e.target.value)}
@@ -407,7 +407,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
             </div>
 
             <div className="col-span-1 md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">Features & Amenities</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">Features & Amenities</label>
               <input
                 type="text"
                 value={formData.features}
@@ -415,25 +415,25 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, newId, onSave,
                 placeholder="Swimming Pool, Gym, Parking, 24/7 Security"
                 className={inputClass}
               />
-              <p className="text-xs text-slate-500 mt-1">Separate features with commas</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Separate features with commas</p>
             </div>
 
           </div>
         </form>
 
         {/* Footer Actions */}
-        <div className="px-4 md:px-8 py-4 border-t border-gray-100 bg-gray-50 md:rounded-b-2xl shrink-0 flex gap-3">
+        <div className="px-4 md:px-8 py-4 border-t border-gray-100 dark:border-slate-800 bg-gray-50 dark:bg-slate-950 md:rounded-b-2xl shrink-0 flex gap-3">
            <button
             type="button"
             onClick={onCancel}
-            className="flex-1 px-4 md:px-6 py-3 border border-slate-300 text-slate-700 font-semibold rounded-xl hover:bg-slate-50 transition-colors"
+            className="flex-1 px-4 md:px-6 py-3 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-semibold rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSubmit}
             disabled={isSaving}
-            className={`flex-1 px-4 md:px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2 ${isSaving ? 'opacity-70 cursor-not-allowed' : 'shadow-lg shadow-blue-200'}`}
+            className={`flex-1 px-4 md:px-6 py-3 bg-blue-600 text-white font-semibold rounded-xl hover:bg-blue-700 transition-all flex items-center justify-center gap-2 ${isSaving ? 'opacity-70 cursor-not-allowed' : 'shadow-lg shadow-blue-200 dark:shadow-blue-900/20'}`}
           >
             {isSaving ? (
               <>
