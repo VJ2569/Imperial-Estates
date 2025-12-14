@@ -47,7 +47,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   } : {};
 
   return (
-    <div className={`bg-white rounded-xl shadow-sm border overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full group ${isSelectedForCompare ? 'ring-2 ring-blue-500 border-blue-500' : 'border-gray-100'}`}>
+    <div className={`bg-white dark:bg-slate-900 rounded-xl shadow-sm border overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col h-full group ${isSelectedForCompare ? 'ring-2 ring-blue-500 border-blue-500' : 'border-gray-100 dark:border-slate-800'}`}>
       <div className={`h-48 p-4 relative overflow-hidden ${hasImage ? '' : 'bg-gradient-to-r from-slate-800 to-slate-900'}`} style={headerStyle}>
         {!hasImage && <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16 blur-xl" />}
         <div className="flex justify-between items-start relative z-10">
@@ -79,48 +79,48 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
       </div>
 
       <div className="p-4 md:p-5 flex-1 flex flex-col">
-        <div className="flex items-center text-gray-500 mb-4 text-sm">
+        <div className="flex items-center text-gray-500 dark:text-gray-400 mb-4 text-sm">
           <MapPin size={14} className="mr-1.5 text-blue-500 shrink-0" />
           <span className="truncate">{property.location}</span>
         </div>
 
-        <div className="flex items-center text-2xl font-bold text-gray-800 mb-5">
-          <IndianRupee size={22} className="text-emerald-600 mr-0.5" />
+        <div className="flex items-center text-2xl font-bold text-gray-800 dark:text-white mb-5">
+          <IndianRupee size={22} className="text-emerald-600 dark:text-emerald-500 mr-0.5" />
           <span>{formatPrice(property.price, property.isRental)}</span>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 mb-5 py-3 border-t border-b border-gray-50">
+        <div className="grid grid-cols-3 gap-2 mb-5 py-3 border-t border-b border-gray-50 dark:border-slate-800">
           {property.bedrooms > 0 && (
             <div className="flex flex-col items-center justify-center text-center">
-              <span className="text-gray-400 text-[10px] md:text-xs mb-1">Beds</span>
-              <div className="flex items-center font-medium text-gray-700 text-sm">
+              <span className="text-gray-400 dark:text-gray-500 text-[10px] md:text-xs mb-1">Beds</span>
+              <div className="flex items-center font-medium text-gray-700 dark:text-gray-200 text-sm">
                 <Bed size={14} className="mr-1.5 text-slate-400" />
                 {property.bedrooms}
               </div>
             </div>
           )}
           <div className="flex flex-col items-center justify-center text-center">
-             <span className="text-gray-400 text-[10px] md:text-xs mb-1">Baths</span>
-            <div className="flex items-center font-medium text-gray-700 text-sm">
+             <span className="text-gray-400 dark:text-gray-500 text-[10px] md:text-xs mb-1">Baths</span>
+            <div className="flex items-center font-medium text-gray-700 dark:text-gray-200 text-sm">
               <Bath size={14} className="mr-1.5 text-slate-400" />
               {property.bathrooms}
             </div>
           </div>
           <div className="flex flex-col items-center justify-center text-center">
-             <span className="text-gray-400 text-[10px] md:text-xs mb-1">Area</span>
-            <div className="flex items-center font-medium text-gray-700 text-sm">
+             <span className="text-gray-400 dark:text-gray-500 text-[10px] md:text-xs mb-1">Area</span>
+            <div className="flex items-center font-medium text-gray-700 dark:text-gray-200 text-sm">
               <Square size={14} className="mr-1.5 text-slate-400" />
               {property.area}
             </div>
           </div>
         </div>
 
-        <p className="text-gray-500 text-sm mb-6 line-clamp-2 flex-1">{property.description}</p>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mb-6 line-clamp-2 flex-1">{property.description}</p>
 
         <div className="flex items-center gap-2 mt-auto pt-2">
           <button
             onClick={() => onViewDetails(property)}
-            className={`flex-1 bg-slate-100 text-slate-700 py-2 px-3 md:px-4 rounded-lg hover:bg-slate-200 transition-colors text-sm font-medium flex items-center justify-center group-hover:bg-blue-50 group-hover:text-blue-600 ${readOnly ? 'w-full' : ''}`}
+            className={`flex-1 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 py-2 px-3 md:px-4 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors text-sm font-medium flex items-center justify-center group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:text-blue-600 dark:group-hover:text-blue-400 ${readOnly ? 'w-full' : ''}`}
           >
             Details <ArrowRight size={14} className="ml-1.5" />
           </button>
@@ -129,14 +129,14 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
             <>
               <button
                 onClick={(e) => { e.stopPropagation(); onEdit(property); }}
-                className="p-2 text-amber-500 hover:bg-amber-50 rounded-lg transition-colors"
+                className="p-2 text-amber-500 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
                 title="Edit"
               >
                 <Edit2 size={18} />
               </button>
               <button
                 onClick={(e) => { e.stopPropagation(); onDelete(property.id); }}
-                className="p-2 text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
                 title="Delete"
               >
                 <Trash2 size={18} />
