@@ -4,7 +4,7 @@ import PropertyCard from './PropertyCard';
 import PropertyForm from './PropertyForm';
 import PropertyDetails from './PropertyDetails';
 import PropertyComparison from './PropertyComparison';
-import { fetchProperties, createProperty, updateProperty, deleteProperty } from '../services/propertyService';
+import { fetchProperties, createProperty, updateProperty, deleteProperty, getStoredProperties } from '../services/propertyService';
 import { Property, PropertyType } from '../types';
 
 interface PropertyManagerProps {
@@ -37,7 +37,17 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
   }, []);
 
   const loadProperties = async () => {
-    setLoading(true);
+    // 1. Optimistic load from cache
+    const cached = getStoredProperties();
+    if (cached.length > 0) {
+        setProperties(cached);
+        setLoading(false);
+    } else {
+        // Only set loading true if we don't have cached data to show
+        setLoading(true);
+    }
+
+    // 2. Network refresh
     const data = await fetchProperties();
     setProperties(data);
     setLoading(false);
