@@ -171,16 +171,16 @@ const AnalyticsDashboard: React.FC = () => {
   // --- Render Components ---
 
   const StatCard = ({ icon: Icon, label, value, subtext, colorClass }: any) => (
-    <div className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm flex flex-col justify-between h-full relative overflow-hidden group hover:shadow-md transition-shadow">
+    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-gray-100 dark:border-slate-800 shadow-sm flex flex-col justify-between h-full relative overflow-hidden group hover:shadow-md transition-shadow">
        <div className="flex justify-between items-start mb-4">
-          <div className={`p-2.5 rounded-lg ${colorClass} bg-opacity-10`}>
+          <div className={`p-2.5 rounded-lg ${colorClass} bg-opacity-10 dark:bg-opacity-20`}>
              <Icon size={20} className={colorClass.replace('bg-', 'text-')} />
           </div>
-          {subtext && <span className="text-xs font-medium text-slate-400 bg-slate-50 px-2 py-1 rounded-full">{subtext}</span>}
+          {subtext && <span className="text-xs font-medium text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-full">{subtext}</span>}
        </div>
        <div>
-          <h4 className="text-2xl font-bold text-slate-900 mb-1">{value}</h4>
-          <p className="text-slate-500 text-sm font-medium">{label}</p>
+          <h4 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{value}</h4>
+          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">{label}</p>
        </div>
     </div>
   );
@@ -198,8 +198,8 @@ const AnalyticsDashboard: React.FC = () => {
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 w-full pb-20">
       <div className="flex justify-between items-end">
          <div>
-            <h2 className="text-2xl font-bold text-gray-900">Operational Intelligence</h2>
-            <p className="text-gray-500 text-sm mt-1">Real-time market analysis and portfolio performance</p>
+            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Operational Intelligence</h2>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Real-time market analysis and portfolio performance</p>
          </div>
          <div className="text-right hidden sm:block">
             <p className="text-xs text-slate-400 font-mono">Last updated: {format(new Date(), 'HH:mm')}</p>
@@ -209,12 +209,12 @@ const AnalyticsDashboard: React.FC = () => {
       {/* Row 1: Time Trends */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
          {/* Engagement Volume */}
-         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-80">
-            <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2">
+         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm h-80">
+            <h3 className="font-bold text-gray-800 dark:text-white mb-1 flex items-center gap-2">
                 <Activity size={18} className="text-blue-500"/>
                 Engagement Volume
             </h3>
-            <p className="text-xs text-slate-500 mb-4">Daily inbound call traffic (30 Days)</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Daily inbound call traffic (30 Days)</p>
             <ResponsiveContainer width="100%" height="85%">
                 <AreaChart data={getCallsOverTime()}>
                     <defs>
@@ -223,12 +223,13 @@ const AnalyticsDashboard: React.FC = () => {
                             <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0}/>
                         </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" opacity={0.3} />
                     <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} minTickGap={30} />
                     <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
                     <Tooltip 
-                        contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}}
-                        itemStyle={{color: COLORS.slate, fontSize: '12px'}}
+                        contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#1e293b', color: '#fff'}}
+                        itemStyle={{color: '#fff', fontSize: '12px'}}
+                        labelStyle={{color: '#94a3b8'}}
                     />
                     <Area type="monotone" dataKey="calls" stroke={COLORS.primary} fillOpacity={1} fill="url(#colorCalls)" strokeWidth={2} />
                 </AreaChart>
@@ -236,18 +237,22 @@ const AnalyticsDashboard: React.FC = () => {
          </div>
 
          {/* Inventory Growth */}
-         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-80">
-            <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2">
+         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm h-80">
+            <h3 className="font-bold text-gray-800 dark:text-white mb-1 flex items-center gap-2">
                 <TrendingUp size={18} className="text-emerald-500"/>
                 Inventory Trends
             </h3>
-            <p className="text-xs text-slate-500 mb-4">Portfolio composition over last 6 months</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Portfolio composition over last 6 months</p>
             <ResponsiveContainer width="100%" height="85%">
                 <BarChart data={getInventoryTrends()} stackOffset="sign">
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" opacity={0.3} />
                     <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
                     <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                    <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                    <Tooltip 
+                        cursor={{fill: '#f8fafc', opacity: 0.1}} 
+                        contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#1e293b', color: '#fff'}}
+                        labelStyle={{color: '#94a3b8'}}
+                    />
                     <Legend iconType="circle" wrapperStyle={{fontSize: '12px', paddingTop: '10px'}} />
                     <Bar dataKey="apartment" stackId="a" fill={COLORS.primary} radius={[0,0,0,0]} barSize={32} name="Apartments" />
                     <Bar dataKey="villa" stackId="a" fill={COLORS.purple} radius={[0,0,0,0]} barSize={32} name="Villas" />
@@ -260,19 +265,22 @@ const AnalyticsDashboard: React.FC = () => {
       {/* Row 2: Operational Insights */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
          {/* Market Balance */}
-         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-96">
-            <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2">
+         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm h-96">
+            <h3 className="font-bold text-gray-800 dark:text-white mb-1 flex items-center gap-2">
                 <Scale size={18} className="text-purple-500"/>
                 Market Balance
             </h3>
-            <p className="text-xs text-slate-500 mb-6">Inventory supply vs. Inferred demand (Call Intent)</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">Inventory supply vs. Inferred demand (Call Intent)</p>
             <ResponsiveContainer width="100%" height="85%">
                 <ComposedChart data={getMarketBalance()}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" opacity={0.3} />
                     <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis yAxisId="left" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} label={{ value: 'Units', angle: -90, position: 'insideLeft', style: {fill: '#94a3b8', fontSize: 10} }} />
                     <YAxis yAxisId="right" orientation="right" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} label={{ value: 'Inquiries', angle: 90, position: 'insideRight', style: {fill: '#94a3b8', fontSize: 10} }} />
-                    <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                    <Tooltip 
+                        contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#1e293b', color: '#fff'}}
+                        labelStyle={{color: '#94a3b8'}}
+                    />
                     <Legend wrapperStyle={{fontSize: '12px', paddingTop: '10px'}} />
                     <Bar yAxisId="left" dataKey="inventory" name="Available Units" fill={COLORS.slate} barSize={40} radius={[4, 4, 0, 0]} />
                     <Line yAxisId="right" type="monotone" dataKey="demand" name="Demand Signals" stroke={COLORS.danger} strokeWidth={3} dot={{r: 4}} />
@@ -281,19 +289,22 @@ const AnalyticsDashboard: React.FC = () => {
          </div>
 
          {/* Occupancy Trend */}
-         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm h-96">
-            <h3 className="font-bold text-gray-800 mb-1 flex items-center gap-2">
+         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm h-96">
+            <h3 className="font-bold text-gray-800 dark:text-white mb-1 flex items-center gap-2">
                 <Home size={18} className="text-amber-500"/>
                 Occupancy Trend
             </h3>
-            <p className="text-xs text-slate-500 mb-6">Projected occupancy rate based on listing flow</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">Projected occupancy rate based on listing flow</p>
             <ResponsiveContainer width="100%" height="85%">
                 <LineChart data={getOccupancyTrend()}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" opacity={0.3} />
                     <XAxis dataKey="month" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis domain={[0, 100]} stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
                     <ReferenceLine y={90} stroke="green" strokeDasharray="3 3" label={{position: 'insideTopRight', value: 'Target', fontSize: 10, fill: 'green'}} />
-                    <Tooltip contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'}} />
+                    <Tooltip 
+                        contentStyle={{borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: '#1e293b', color: '#fff'}}
+                        labelStyle={{color: '#94a3b8'}}
+                    />
                     <Line type="monotone" dataKey="rate" stroke={COLORS.tertiary} strokeWidth={3} dot={{r: 4, strokeWidth: 2}} activeDot={{r: 6}} />
                 </LineChart>
             </ResponsiveContainer>
