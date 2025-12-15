@@ -38,6 +38,8 @@ export interface VapiCall {
   id: string;
   createdAt: string;
   updatedAt: string;
+  startedAt?: string;
+  endedAt?: string;
   type: string;
   status: string;
   endedReason?: string;
@@ -46,13 +48,14 @@ export interface VapiCall {
   summary?: string;
   analysis?: {
     summary?: string;
-    successEvaluation?: string; // often 'true' or 'false' as string or boolean
+    successEvaluation?: string | boolean; // Can be 'true'/'false' string or boolean
   };
   customer?: {
     number?: string;
     name?: string;
   };
   cost?: number;
-  duration?: number; // in seconds usually
+  duration?: number; 
+  durationSeconds?: number; // Vapi often returns this
   assistantId?: string;
 }
