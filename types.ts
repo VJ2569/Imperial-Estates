@@ -48,7 +48,7 @@ export interface VapiCall {
   summary?: string;
   analysis?: {
     summary?: string;
-    successEvaluation?: string | boolean; // Can be 'true'/'false' string or boolean
+    successEvaluation?: string | boolean; // Vapi returns this as string "true"/"false" or boolean
   };
   customer?: {
     number?: string;
@@ -56,6 +56,6 @@ export interface VapiCall {
   };
   cost?: number;
   duration?: number; 
-  durationSeconds?: number; // Vapi often returns this
+  durationSeconds?: number; // Specific field often returned by Vapi
   assistantId?: string;
 }
