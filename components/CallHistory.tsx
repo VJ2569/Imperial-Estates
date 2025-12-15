@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Play, FileText, CheckCircle2, XCircle, RefreshCcw, User, X, Filter, Settings } from 'lucide-react';
+import { Play, FileText, CheckCircle2, XCircle, RefreshCcw, User, X, Filter, Settings, Clock, AlertCircle } from 'lucide-react';
 import { fetchVapiCalls, getStoredVapiCalls } from '../services/vapiService';
 import { VapiCall, Assistant } from '../types';
 import { format } from 'date-fns';
@@ -67,8 +67,23 @@ const CallHistory: React.FC = () => {
     setLoading(false);
   };
 
-  const formatDuration = (seconds?: number) => {
-    if (!seconds) return '0s';
+  const getCallDuration = (call: VapiCall): number => {
+    // Priority 1: durationSeconds (often sent by Vapi)
+    if (typeof call.durationSeconds === 'number') return call.durationSeconds;
+    // Priority 2: duration (standard field)
+    if (typeof call.duration === 'number') return call.duration;
+    // Priority 3: Calculate from timestamps
+    if (call.startedAt && call.endedAt) {
+        const start = new Date(call.startedAt).getTime();
+        const end = new Date(call.endedAt).getTime();
+        return (end - start) / 1000;
+    }
+    return 0;
+  };
+
+  const formatDuration = (call: VapiCall) => {
+    const seconds = getCallDuration(call);
+    if (seconds <= 0) return '-';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}m ${secs}s`;
@@ -78,6 +93,59 @@ const CallHistory: React.FC = () => {
   const getAssistantName = (id: string) => {
       const assistant = assistants.find(a => a.id === id);
       return assistant ? assistant.name : `${id.substring(0, 8)}...`;
+  };
+
+  const renderStatus = (call: VapiCall) => {
+      // 1. Check Analysis Success Evaluation (Prioritize Vapi Intelligence)
+      const evaluation = call.analysis?.successEvaluation;
+      // Handle both string "true"/"false" and boolean true/false
+      const isSuccess = evaluation === true || evaluation === 'true';
+      const isFailure = evaluation === false || evaluation === 'false';
+
+      if (isSuccess) {
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
+                <CheckCircle2 size={12} />
+                Success
+            </span>
+          );
+      }
+
+      if (isFailure) {
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border border-rose-100 dark:border-rose-800">
+                <XCircle size={12} />
+                Unsuccessful
+            </span>
+          );
+      }
+
+      // 2. Fallback to ended reason if analysis is not available/conclusive
+      if (call.status === 'ended') {
+          if (call.endedReason === 'customer-did-not-answer') {
+              return (
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-800">
+                    <Clock size={12} />
+                    No Answer
+                </span>
+              );
+          }
+          // Default completed state
+          return (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                <CheckCircle2 size={12} />
+                Completed
+            </span>
+          );
+      }
+
+      // 3. Ongoing Status
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-800 capitalize">
+            <AlertCircle size={12} />
+            {call.status}
+        </span>
+      );
   };
 
   // Filter calls based on selected assistant and configuration
@@ -193,17 +261,7 @@ const CallHistory: React.FC = () => {
                 {filteredCalls.map((call) => (
                   <tr key={call.id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
                     <td className="px-6 py-4">
-                      {call.analysis?.successEvaluation === 'true' || call.status === 'ended' ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
-                          <CheckCircle2 size={12} />
-                          Success
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-800">
-                          <XCircle size={12} />
-                          {call.endedReason || 'Failed'}
-                        </span>
-                      )}
+                      {renderStatus(call)}
                     </td>
                     <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
                       {call.customer?.number || 'Unknown Number'}
@@ -218,7 +276,7 @@ const CallHistory: React.FC = () => {
                         {call.assistantId ? getAssistantName(call.assistantId) : '-'}
                     </td>
                     <td className="px-6 py-4 text-gray-600 dark:text-gray-400 text-sm font-mono">
-                      {formatDuration(call.duration)}
+                      {formatDuration(call)}
                     </td>
                     <td className="px-6 py-4 text-gray-600 dark:text-gray-400 text-sm">
                       ${call.cost?.toFixed(4) || '0.00'}
