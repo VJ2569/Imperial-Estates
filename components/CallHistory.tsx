@@ -67,25 +67,33 @@ const CallHistory: React.FC = () => {
     setLoading(false);
   };
 
+  // Improved duration calculation
   const getCallDuration = (call: VapiCall): number => {
-    // Priority 1: durationSeconds (often sent by Vapi)
+    // 1. Check explicit durationSeconds (most accurate from Vapi)
     if (typeof call.durationSeconds === 'number') return call.durationSeconds;
-    // Priority 2: duration (standard field)
-    if (typeof call.duration === 'number') return call.duration;
-    // Priority 3: Calculate from timestamps
+    
+    // 2. Check standard duration field
+    if (typeof call.duration === 'number' && call.duration > 0) return call.duration;
+
+    // 3. Calculate from timestamps if available
     if (call.startedAt && call.endedAt) {
         const start = new Date(call.startedAt).getTime();
         const end = new Date(call.endedAt).getTime();
-        return (end - start) / 1000;
+        const diff = (end - start) / 1000;
+        return diff > 0 ? diff : 0;
     }
+    
     return 0;
   };
 
   const formatDuration = (call: VapiCall) => {
     const seconds = getCallDuration(call);
     if (seconds <= 0) return '-';
+    
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
+    
+    if (mins === 0) return `${secs}s`;
     return `${mins}m ${secs}s`;
   };
 
@@ -96,9 +104,10 @@ const CallHistory: React.FC = () => {
   };
 
   const renderStatus = (call: VapiCall) => {
-      // 1. Check Analysis Success Evaluation (Prioritize Vapi Intelligence)
+      // 1. Priority: Check Vapi's Success Evaluation from Analysis
+      // It can come as boolean true/false or string "true"/"false"
       const evaluation = call.analysis?.successEvaluation;
-      // Handle both string "true"/"false" and boolean true/false
+      
       const isSuccess = evaluation === true || evaluation === 'true';
       const isFailure = evaluation === false || evaluation === 'false';
 
@@ -115,12 +124,12 @@ const CallHistory: React.FC = () => {
           return (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border border-rose-100 dark:border-rose-800">
                 <XCircle size={12} />
-                Unsuccessful
+                Failed
             </span>
           );
       }
 
-      // 2. Fallback to ended reason if analysis is not available/conclusive
+      // 2. Fallback: Check technical status
       if (call.status === 'ended') {
           if (call.endedReason === 'customer-did-not-answer') {
               return (
@@ -130,7 +139,7 @@ const CallHistory: React.FC = () => {
                 </span>
               );
           }
-          // Default completed state
+          // Default completed state if no specific evaluation
           return (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                 <CheckCircle2 size={12} />
