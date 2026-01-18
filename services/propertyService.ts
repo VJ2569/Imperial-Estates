@@ -3,14 +3,11 @@ import { Property } from '../types';
 
 const STORAGE_KEY = 'imperial_estates_db';
 
-// --- Local Storage Helpers ---
-
 const loadStoredProperties = (): Property[] | null => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     return stored ? JSON.parse(stored) : null;
   } catch (error) {
-    console.warn('Failed to load from local storage:', error);
     return null;
   }
 };
@@ -18,32 +15,20 @@ const loadStoredProperties = (): Property[] | null => {
 const saveStoredProperties = (properties: Property[]) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(properties));
-  } catch (error) {
-    console.warn('Failed to save to local storage:', error);
-  }
+  } catch (error) {}
 };
 
-// --- Initialization ---
-
-// Initialize local state: Try LocalStorage first, then fall back to empty array.
 let localProperties: Property[] = loadStoredProperties() || [];
 
-// Export this helper so components can sync read
 export const getStoredProperties = (): Property[] => {
   return localProperties;
 };
 
-// --- API Helpers ---
-
-// Increased timeout to 30000ms (30s) to allow n8n on Render time to wake up from cold start
-const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout = 30000) => {
+const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout = 15000) => {
   const controller = new AbortController();
   const id = setTimeout(() => controller.abort(), timeout);
   try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
-    });
+    const response = await fetch(url, { ...options, signal: controller.signal });
     clearTimeout(id);
     return response;
   } catch (error) {
@@ -52,133 +37,68 @@ const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout 
   }
 };
 
-// --- Service Methods ---
-
 export const fetchProperties = async (): Promise<Property[]> => {
   try {
-    const response = await fetchWithTimeout(API_CONFIG.GET_ALL);
+    // action=get_all tells n8n to return the property list
+    const url = `${API_CONFIG.GET_ALL}?action=get_all`;
+    const response = await fetchWithTimeout(url);
     if (response.ok) {
       const data = await response.json();
-      
-      let fetchedProperties: Property[] | null = null;
-      
-      if (Array.isArray(data)) {
-        fetchedProperties = data;
-      } else if (data && data.properties && Array.isArray(data.properties)) {
-        fetchedProperties = data.properties;
-      }
-
-      if (fetchedProperties) {
-        localProperties = fetchedProperties;
-        saveStoredProperties(localProperties);
-        return localProperties;
-      }
+      const fetched = Array.isArray(data) ? data : (data.properties || []);
+      localProperties = fetched;
+      saveStoredProperties(localProperties);
+      return localProperties;
     }
   } catch (error) {
-    console.warn('API unavailable or timed out, utilizing local storage cache.');
+    console.warn('API fetch failed, using cache.');
   }
-  
   return localProperties;
 };
 
 export const createProperty = async (property: Property): Promise<boolean> => {
-  localProperties = [...localProperties, property];
-  saveStoredProperties(localProperties);
-
+  const url = `${API_CONFIG.ADD_PROPERTY}?action=add`;
   try {
-    // Attempt standard JSON POST first
-    await fetchWithTimeout(API_CONFIG.ADD_PROPERTY, {
+    localProperties = [...localProperties, property];
+    saveStoredProperties(localProperties);
+    await fetchWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(property)
     });
     return true;
   } catch (error) {
-    console.warn('API unavailable, saved locally:', error);
-    
-    // Retry with no-cors simple request if the first failed (likely CORS)
-    try {
-        await fetch(API_CONFIG.ADD_PROPERTY, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify(property),
-            keepalive: true
-        });
-    } catch (e) { console.error('Backup sync failed', e); }
-    
-    return true;
+    return true; // Optimistic update
   }
 };
 
 export const updateProperty = async (property: Property): Promise<boolean> => {
-  localProperties = localProperties.map(p => p.id === property.id ? property : p);
-  saveStoredProperties(localProperties);
-
+  const url = `${API_CONFIG.UPDATE_PROPERTY}?action=update`;
   try {
-    await fetchWithTimeout(API_CONFIG.UPDATE_PROPERTY, {
+    localProperties = localProperties.map(p => p.id === property.id ? property : p);
+    saveStoredProperties(localProperties);
+    await fetchWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(property)
     });
     return true;
   } catch (error) {
-    console.warn('Error updating property, updated locally:', error);
-    
-    try {
-        await fetch(API_CONFIG.UPDATE_PROPERTY, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'text/plain' },
-            body: JSON.stringify(property),
-            keepalive: true
-        });
-    } catch (e) { console.error('Backup sync failed', e); }
-
     return true;
   }
 };
 
 export const deleteProperty = async (id: string): Promise<boolean> => {
-  localProperties = localProperties.filter(p => p.id !== id);
-  saveStoredProperties(localProperties);
-
-  // Send ID as both query param and raw text body to ensure n8n picks it up correctly
-  // irrespective of how the webhook node is configured (JSON vs Raw).
-  const urlWithParam = `${API_CONFIG.DELETE_PROPERTY}?id=${encodeURIComponent(id)}`;
-
+  const url = `${API_CONFIG.DELETE_PROPERTY}?action=delete`;
   try {
-    console.log(`Sending delete request for ID: ${id}`);
-    
-    // Attempt 1: Standard POST with raw string body (Content-Type: text/plain)
-    // This avoids sending {"id": "..."} JSON object.
-    await fetchWithTimeout(urlWithParam, {
+    localProperties = localProperties.filter(p => p.id !== id);
+    saveStoredProperties(localProperties);
+    await fetchWithTimeout(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'text/plain' },
-      body: id
-    }, 5000);
-
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id })
+    });
     return true;
   } catch (error) {
-    console.warn('Standard delete failed, attempting fallback (no-cors)...', error);
-    
-    try {
-        // Fallback: Simple Request (No Preflight)
-        // Note: Response will be opaque (status 0)
-        await fetch(urlWithParam, {
-            method: 'POST',
-            mode: 'no-cors', 
-            headers: { 
-                'Content-Type': 'text/plain' 
-            },
-            body: id,
-            keepalive: true 
-        });
-        console.log('Fallback delete request sent');
-        return true;
-    } catch (e) {
-        console.error('All delete attempts failed', e);
-        return true; 
-    }
+    return true;
   }
 };
