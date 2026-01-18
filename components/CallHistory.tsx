@@ -1,6 +1,7 @@
+
 import React, { useEffect, useState } from 'react';
 import { Play, FileText, CheckCircle2, XCircle, RefreshCcw, User, X, Filter, Settings, Clock, AlertCircle } from 'lucide-react';
-import { fetchRetellCalls, getStoredRetellCalls } from '../services/vapiService'; // Reusing file for simplicity
+import { fetchRetellCalls, getStoredRetellCalls } from '../services/retellService';
 import { RetellCall, Assistant } from '../types';
 import { format } from 'date-fns';
 
@@ -8,7 +9,6 @@ const CallHistory: React.FC = () => {
   const [calls, setCalls] = useState<RetellCall[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTranscript, setSelectedTranscript] = useState<string | null>(null);
-  
   const [agents, setAgents] = useState<Assistant[]>([]);
   const [selectedAgentId, setSelectedAgentId] = useState<string>('all');
 
@@ -28,7 +28,6 @@ const CallHistory: React.FC = () => {
               setAgents(Array.isArray(parsed) ? parsed : []);
           } catch (e) { console.error(e); }
       }
-      
       if (!storedIds || JSON.parse(storedIds).length === 0) {
           const legacyId = localStorage.getItem('retell_agent_id');
           if (legacyId) {
@@ -45,7 +44,6 @@ const CallHistory: React.FC = () => {
     } else {
         setLoading(true);
     }
-
     const data = await fetchRetellCalls();
     setCalls(data);
     setLoading(false);
@@ -68,9 +66,7 @@ const CallHistory: React.FC = () => {
   };
 
   const renderStatus = (call: RetellCall) => {
-      // Prioritize Success Evaluation from Retell's Analysis
       const isSuccessful = call.call_analysis?.call_successful;
-
       if (isSuccessful === true) {
           return (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800">
@@ -79,7 +75,6 @@ const CallHistory: React.FC = () => {
             </span>
           );
       }
-
       if (isSuccessful === false) {
           return (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border border-rose-100 dark:border-rose-800">
@@ -88,8 +83,6 @@ const CallHistory: React.FC = () => {
             </span>
           );
       }
-
-      // Fallback to technical status
       if (call.call_status === 'completed') {
           return (
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
@@ -98,7 +91,6 @@ const CallHistory: React.FC = () => {
             </span>
           );
       }
-
       return (
         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border border-blue-100 dark:border-blue-800 capitalize">
             <AlertCircle size={12} />
@@ -121,7 +113,6 @@ const CallHistory: React.FC = () => {
           <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Receptionist Logs (Retell AI)</h2>
           <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm">Success-evaluated call history</p>
         </div>
-        
         <div className="flex items-center gap-3">
             {agents.length > 1 && (
                 <div className="relative">
@@ -131,7 +122,7 @@ const CallHistory: React.FC = () => {
                     <select
                         value={selectedAgentId}
                         onChange={(e) => setSelectedAgentId(e.target.value)}
-                        className="pl-9 pr-8 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-200 outline-none focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer shadow-sm min-w-[180px]"
+                        className="pl-9 pr-8 py-2 bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg text-sm text-gray-700 dark:text-gray-200 outline-none appearance-none min-w-[180px]"
                     >
                         <option value="all">All Agents</option>
                         {agents.map(agent => (
@@ -140,11 +131,7 @@ const CallHistory: React.FC = () => {
                     </select>
                 </div>
             )}
-            
-            <button 
-              onClick={loadCalls}
-              className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm"
-            >
+            <button onClick={loadCalls} className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
               <RefreshCcw size={20} className={loading ? 'animate-spin' : ''} />
             </button>
         </div>
@@ -177,26 +164,14 @@ const CallHistory: React.FC = () => {
               <tbody className="divide-y divide-gray-100 dark:divide-slate-800">
                 {filteredCalls.map((call) => (
                   <tr key={call.call_id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <td className="px-6 py-4">
-                      {renderStatus(call)}
-                    </td>
-                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">
-                      {call.customer_number || 'Inbound'}
-                    </td>
-                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-sm">
-                      {format(new Date(call.start_timestamp), 'MMM d, h:mm a')}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400 text-sm font-mono">
-                      {formatDuration(call)}
-                    </td>
+                    <td className="px-6 py-4">{renderStatus(call)}</td>
+                    <td className="px-6 py-4 font-medium text-gray-900 dark:text-white">{call.customer_number || 'Inbound'}</td>
+                    <td className="px-6 py-4 text-gray-500 dark:text-gray-400 text-sm">{format(new Date(call.start_timestamp), 'MMM d, h:mm a')}</td>
+                    <td className="px-6 py-4 text-gray-600 dark:text-gray-400 text-sm font-mono">{formatDuration(call)}</td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        {call.recording_url && (
-                          <a href={call.recording_url} target="_blank" className="p-2 text-blue-600"><Play size={18} /></a>
-                        )}
-                        {call.transcript && (
-                          <button onClick={() => setSelectedTranscript(call.transcript || '')} className="p-2 text-slate-600"><FileText size={18} /></button>
-                        )}
+                        {call.recording_url && <a href={call.recording_url} target="_blank" className="p-2 text-blue-600"><Play size={18} /></a>}
+                        {call.transcript && <button onClick={() => setSelectedTranscript(call.transcript || '')} className="p-2 text-slate-600"><FileText size={18} /></button>}
                       </div>
                     </td>
                   </tr>
