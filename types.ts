@@ -1,4 +1,3 @@
-
 export type PropertyType = 'apartment' | 'villa' | 'commercial';
 export type PropertyStatus = 'available' | 'sold' | 'rented';
 
@@ -34,28 +33,21 @@ export interface Assistant {
   name: string;
 }
 
-export interface VapiCall {
-  id: string;
-  createdAt: string;
-  updatedAt: string;
-  startedAt?: string;
-  endedAt?: string;
-  type: string;
-  status: string;
-  endedReason?: string;
+export interface RetellCall {
+  call_id: string;
+  agent_id: string;
+  call_status: string;
+  start_timestamp: number;
+  end_timestamp: number;
+  duration_ms?: number;
   transcript?: string;
-  recordingUrl?: string;
-  summary?: string;
-  analysis?: {
-    summary?: string;
-    successEvaluation?: string | boolean; // Vapi returns this as string "true"/"false" or boolean
+  recording_url?: string;
+  public_log_url?: string;
+  call_analysis?: {
+    call_summary?: string;
+    call_successful?: boolean;
+    user_sentiment?: string;
   };
-  customer?: {
-    number?: string;
-    name?: string;
-  };
-  cost?: number;
-  duration?: number; 
-  durationSeconds?: number; // Specific field often returned by Vapi
-  assistantId?: string;
+  customer_number?: string;
+  metadata?: any;
 }
