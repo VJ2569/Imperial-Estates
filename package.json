@@ -1,3 +1,4 @@
+
 {
   "name": "imperial-estates",
   "private": true,
@@ -9,7 +10,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@vapi-ai/web": "^1.1.0",
+    "retell-client-js-sdk": "^2.0.0",
     "date-fns": "^3.3.1",
     "html2canvas": "^1.4.1",
     "jspdf": "^2.5.1",
