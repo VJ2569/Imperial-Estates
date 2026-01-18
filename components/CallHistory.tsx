@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { Play, FileText, CheckCircle2, XCircle, RefreshCcw, User, X, Filter, Settings, Clock, AlertCircle } from 'lucide-react';
+import { Play, FileText, CheckCircle2, XCircle, RefreshCcw, User, X, Filter, AlertCircle } from 'lucide-react';
 import { fetchRetellCalls, getStoredRetellCalls } from '../services/retellService';
 import { RetellCall, Assistant } from '../types';
 import { format } from 'date-fns';
