@@ -1,13 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
 import { Save, Key, User, Shield, CheckCircle2, Plus, Trash2, HelpCircle, Moon, Sun } from 'lucide-react';
-import { VAPI_CONFIG } from '../constants';
+// Use RETELL_CONFIG instead of missing VAPI_CONFIG
+import { RETELL_CONFIG } from '../constants';
 import { Assistant } from '../types';
 
 const Settings: React.FC = () => {
   const [activeSection, setActiveSection] = useState<'general' | 'integrations'>('integrations');
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const [vapiConfig, setVapiConfig] = useState({
+  // Rename config state to retellConfig for consistency
+  const [retellConfig, setRetellConfig] = useState({
     publicKey: '',
     assistants: [] as Assistant[],
     privateKey: ''
@@ -24,13 +27,13 @@ const Settings: React.FC = () => {
   });
 
   useEffect(() => {
-    // Load Vapi Config
-    const storedPublicKey = localStorage.getItem('vapi_public_key') || VAPI_CONFIG.PUBLIC_KEY;
-    const storedPrivateKey = localStorage.getItem('vapi_private_key') || VAPI_CONFIG.PRIVATE_KEY;
+    // Load Retell Config from localStorage or RETELL_CONFIG constants
+    const storedPublicKey = localStorage.getItem('retell_public_key') || '';
+    const storedPrivateKey = localStorage.getItem('retell_api_key') || RETELL_CONFIG.API_KEY;
     
-    // Load Assistant IDs
+    // Load Assistant (Agent) IDs
     let loadedAssistants: Assistant[] = [];
-    const storedIdsJson = localStorage.getItem('vapi_assistant_ids');
+    const storedIdsJson = localStorage.getItem('retell_agent_ids');
     
     if (storedIdsJson) {
         try {
@@ -39,26 +42,26 @@ const Settings: React.FC = () => {
                 if (parsed.length > 0 && typeof parsed[0] === 'string') {
                     loadedAssistants = parsed.map((id, idx) => ({ 
                         id, 
-                        name: `Assistant ${idx + 1}` 
+                        name: `Agent ${idx + 1}` 
                     }));
                 } else {
                     loadedAssistants = parsed;
                 }
             }
         } catch (e) {
-            console.error('Failed to parse assistant IDs', e);
+            console.error('Failed to parse agent IDs', e);
         }
     } else {
-        const oldId = localStorage.getItem('vapi_assistant_id') || VAPI_CONFIG.ASSISTANT_ID;
-        if (oldId && !oldId.includes('YOUR_VAPI')) {
-            loadedAssistants = [{ id: oldId, name: 'Primary Assistant' }];
+        const oldId = localStorage.getItem('retell_agent_id') || RETELL_CONFIG.AGENT_ID;
+        if (oldId && !oldId.includes('YOUR_RETELL')) {
+            loadedAssistants = [{ id: oldId, name: 'Primary Agent' }];
         }
     }
 
-    setVapiConfig({
-        publicKey: storedPublicKey === 'YOUR_VAPI_PUBLIC_KEY' ? '' : storedPublicKey,
+    setRetellConfig({
+        publicKey: storedPublicKey,
         assistants: loadedAssistants,
-        privateKey: storedPrivateKey === 'YOUR_VAPI_PRIVATE_KEY_HERE' ? '' : storedPrivateKey
+        privateKey: storedPrivateKey === 'YOUR_RETELL_API_KEY' ? '' : storedPrivateKey
     });
 
     const storedGeneral = localStorage.getItem('app_general_config');
@@ -77,15 +80,15 @@ const Settings: React.FC = () => {
   }, [generalConfig.appearance]);
 
   const handleSave = () => {
-    if (vapiConfig.publicKey) localStorage.setItem('vapi_public_key', vapiConfig.publicKey);
-    if (vapiConfig.privateKey) localStorage.setItem('vapi_private_key', vapiConfig.privateKey);
+    if (retellConfig.publicKey) localStorage.setItem('retell_public_key', retellConfig.publicKey);
+    if (retellConfig.privateKey) localStorage.setItem('retell_api_key', retellConfig.privateKey);
     
-    localStorage.setItem('vapi_assistant_ids', JSON.stringify(vapiConfig.assistants));
+    localStorage.setItem('retell_agent_ids', JSON.stringify(retellConfig.assistants));
     
-    if (vapiConfig.assistants.length > 0) {
-        localStorage.setItem('vapi_assistant_id', vapiConfig.assistants[0].id);
+    if (retellConfig.assistants.length > 0) {
+        localStorage.setItem('retell_agent_id', retellConfig.assistants[0].id);
     } else {
-        localStorage.removeItem('vapi_assistant_id');
+        localStorage.removeItem('retell_agent_id');
     }
 
     localStorage.setItem('app_general_config', JSON.stringify(generalConfig));
@@ -99,8 +102,8 @@ const Settings: React.FC = () => {
         const id = newAssistantId.trim();
         const name = newAssistantName.trim();
         
-        if (!vapiConfig.assistants.some(a => a.id === id)) {
-            setVapiConfig(prev => ({
+        if (!retellConfig.assistants.some(a => a.id === id)) {
+            setRetellConfig(prev => ({
                 ...prev,
                 assistants: [...prev.assistants, { id, name }]
             }));
@@ -111,7 +114,7 @@ const Settings: React.FC = () => {
   };
 
   const removeAssistant = (idToRemove: string) => {
-    setVapiConfig(prev => ({
+    setRetellConfig(prev => ({
         ...prev,
         assistants: prev.assistants.filter(a => a.id !== idToRemove)
     }));
@@ -145,7 +148,7 @@ const Settings: React.FC = () => {
             }`}
           >
             <Key size={18} />
-            Integrations
+            Integrations (Retell)
           </button>
           <button
             onClick={() => setActiveSection('general')}
@@ -166,28 +169,29 @@ const Settings: React.FC = () => {
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm">
                 <div className="space-y-4">
+                  {/* Keep the field for flexibility, although Retell primarily uses Agent ID */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Public Key</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Optional Reference Key</label>
                     <input 
                       type="text" 
-                      value={vapiConfig.publicKey}
-                      onChange={(e) => setVapiConfig({...vapiConfig, publicKey: e.target.value})}
-                      placeholder="e.g. 1234-abcd-..."
-                      className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none font-mono text-sm text-gray-900 dark:text-white"
+                      value={retellConfig.publicKey}
+                      onChange={(e) => setRetellConfig({...retellConfig, publicKey: e.target.value})}
+                      placeholder="e.g. Reference identifier..."
+                      className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm text-gray-900 dark:text-white"
                     />
-                    <p className="text-xs text-gray-400 mt-1">Used for the browser microphone client.</p>
+                    <p className="text-xs text-gray-400 mt-1">Generic reference for external tracking.</p>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Assistants</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Retell Agents</label>
                     
                     <div className="space-y-3 mb-4">
-                        {vapiConfig.assistants.length === 0 && (
-                            <p className="text-sm text-gray-400 italic">No assistants configured.</p>
+                        {retellConfig.assistants.length === 0 && (
+                            <p className="text-sm text-gray-400 italic">No agents configured.</p>
                         )}
-                        {vapiConfig.assistants.map((assistant, index) => (
+                        {retellConfig.assistants.map((assistant, index) => (
                             <div key={assistant.id} className="flex items-center gap-3 bg-gray-50 dark:bg-slate-800 p-3 rounded-lg border border-gray-100 dark:border-slate-700 group">
-                                <div className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 w-8 h-8 rounded flex items-center justify-center text-xs font-bold shrink-0">
+                                <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 w-8 h-8 rounded flex items-center justify-center text-xs font-bold shrink-0">
                                     {index + 1}
                                 </div>
                                 <div className="flex-1 min-w-0">
@@ -197,7 +201,7 @@ const Settings: React.FC = () => {
                                 <button 
                                     onClick={() => removeAssistant(assistant.id)}
                                     className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
-                                    title="Remove Assistant"
+                                    title="Remove Agent"
                                 >
                                     <Trash2 size={16} />
                                 </button>
@@ -211,45 +215,45 @@ const Settings: React.FC = () => {
                           value={newAssistantName}
                           onChange={(e) => setNewAssistantName(e.target.value)}
                           placeholder="Name (e.g. Sales Agent)"
-                          className="flex-1 px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none text-sm text-gray-900 dark:text-white"
+                          className="flex-1 px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm text-gray-900 dark:text-white"
                         />
                         <input 
                           type="text" 
                           value={newAssistantId}
                           onChange={(e) => setNewAssistantId(e.target.value)}
-                          placeholder="ID (e.g. 5678-efgh...)"
-                          className="flex-[2] px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none font-mono text-sm text-gray-900 dark:text-white"
+                          placeholder="Agent ID (from Retell dashboard)"
+                          className="flex-[2] px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm text-gray-900 dark:text-white"
                         />
                         <button 
                             onClick={addAssistant}
                             disabled={!newAssistantId.trim() || !newAssistantName.trim()}
                             className="bg-slate-900 dark:bg-slate-700 text-white px-4 py-2 rounded-lg hover:bg-slate-800 dark:hover:bg-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-                            title="Add Assistant"
+                            title="Add Agent"
                         >
                             <Plus size={20} />
                         </button>
                     </div>
                     <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
                         <HelpCircle size={12} />
-                        The first assistant in the list is used for the "Call Agent" button.
+                        The first agent in the list is used for the "Call Agent" button.
                     </p>
                   </div>
 
                   <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Private API Key</label>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Retell API Key</label>
                     <div className="relative">
                       <input 
                         type="password" 
-                        value={vapiConfig.privateKey}
-                        onChange={(e) => setVapiConfig({...vapiConfig, privateKey: e.target.value})}
-                        placeholder="sk-..."
-                        className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none font-mono text-sm text-gray-900 dark:text-white"
+                        value={retellConfig.privateKey}
+                        onChange={(e) => setRetellConfig({...retellConfig, privateKey: e.target.value})}
+                        placeholder="Retell API Key..."
+                        className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm text-gray-900 dark:text-white"
                       />
                       <Shield className="absolute right-3 top-2.5 text-gray-400" size={16} />
                     </div>
                     <p className="text-xs text-amber-600 dark:text-amber-500 mt-1 flex items-center gap-1">
                       <Shield size={10} />
-                      Stored locally. Used to fetch logs.
+                      Stored locally. Used to fetch logs from Retell AI.
                     </p>
                   </div>
                 </div>
