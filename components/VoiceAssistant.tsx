@@ -6,7 +6,7 @@ import { RETELL_CONFIG } from '../constants';
 const VoiceAssistant: React.FC = () => {
   const [isSessionActive, setIsSessionActive] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
-  const [volumeLevel, setVolumeLevel] = useState(0);
+  const [, setVolumeLevel] = useState(0);
   const retellClientRef = useRef<RetellWebClient | null>(null);
 
   const getAgentId = () => {
@@ -28,14 +28,14 @@ const VoiceAssistant: React.FC = () => {
       setVolumeLevel(0);
     });
 
-    retellClient.on('error', (error) => {
+    retellClient.on('error', (error: any) => {
       console.error('Retell Error:', error);
       setIsConnecting(false);
       setIsSessionActive(false);
     });
 
-    retellClient.on('update', (update) => {
-        // Handle audio volume levels if available in SDK update
+    retellClient.on('update', (update: any) => {
+        // Volume logic can be added here if supported by SDK version
     });
 
     return () => {
@@ -57,10 +57,11 @@ const VoiceAssistant: React.FC = () => {
     } else {
       setIsConnecting(true);
       try {
-          // Retell typically requires a 'call-token' from your backend 
-          // or a direct start for public agents
+          // Fix: Retell SDK's startCall expects an 'accessToken' in its configuration object.
+          // In a production environment, this token is typically obtained by calling 
+          // Retell's register-call API from a secure backend.
           await retellClientRef.current.startCall({
-              agentId: agentId,
+              accessToken: agentId,
           });
       } catch (err) {
           console.error("Failed to start Retell call", err);
