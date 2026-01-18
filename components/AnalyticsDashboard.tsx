@@ -1,11 +1,12 @@
+
 import React, { useEffect, useState } from 'react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   BarChart, Bar, LineChart, Line, Legend, ComposedChart, ReferenceLine 
 } from 'recharts';
-import { fetchProperties, getStoredProperties } from '../services/propertyService';
-import { fetchVapiCalls, getStoredVapiCalls } from '../services/vapiService';
-import { Property, VapiCall } from '../types';
+// Use Retell service and types instead of missing Vapi members
+import { fetchRetellCalls, getStoredRetellCalls } from '../services/vapiService';
+import { Property, RetellCall } from '../types';
 import { TrendingUp, Home, Phone, DollarSign, Clock, AlertTriangle, Activity } from 'lucide-react';
 import { format, subMonths, eachDayOfInterval, subDays, isSameDay, parseISO, differenceInDays } from 'date-fns';
 
@@ -20,13 +21,14 @@ const COLORS = {
 
 const AnalyticsDashboard: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
-  const [calls, setCalls] = useState<VapiCall[]>([]);
+  const [calls, setCalls] = useState<RetellCall[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const loadData = async () => {
       const cachedProps = getStoredProperties();
-      const cachedCalls = getStoredVapiCalls();
+      // Use getStoredRetellCalls
+      const cachedCalls = getStoredRetellCalls();
       
       if (cachedProps.length > 0 || cachedCalls.length > 0) {
           setProperties(cachedProps);
@@ -38,7 +40,8 @@ const AnalyticsDashboard: React.FC = () => {
 
       const [propData, callData] = await Promise.all([
         fetchProperties(),
-        fetchVapiCalls()
+        // Use fetchRetellCalls
+        fetchRetellCalls()
       ]);
       setProperties(propData);
       setCalls(callData);
@@ -56,11 +59,13 @@ const AnalyticsDashboard: React.FC = () => {
     const days = eachDayOfInterval({ start, end });
 
     return days.map(day => {
-      const dayCalls = calls.filter(c => isSameDay(new Date(c.createdAt), day));
+      // RetellCall uses start_timestamp instead of createdAt
+      const dayCalls = calls.filter(c => isSameDay(new Date(c.start_timestamp), day));
       return {
         date: format(day, 'MMM dd'),
         calls: dayCalls.length,
-        duration: Math.floor(dayCalls.reduce((acc, c) => acc + (c.duration || 0), 0) / 60) // mins
+        // RetellCall uses duration_ms instead of duration
+        duration: Math.floor(dayCalls.reduce((acc, c) => acc + (c.duration_ms ? c.duration_ms / 1000 : 0), 0) / 60) // mins
       };
     });
   };
@@ -93,8 +98,9 @@ const AnalyticsDashboard: React.FC = () => {
   // 3. Market Balance: Inventory vs Demand (Inferred from Calls)
   const getMarketBalance = () => {
     // Helper to detect intent
-    const detectIntent = (call: VapiCall) => {
-        const text = (call.transcript || call.summary || '').toLowerCase();
+    const detectIntent = (call: RetellCall) => {
+        // RetellCall uses call_analysis.call_summary instead of summary
+        const text = (call.transcript || call.call_analysis?.call_summary || '').toLowerCase();
         if (text.includes('villa')) return 'villa';
         if (text.includes('apartment') || text.includes('flat')) return 'apartment';
         if (text.includes('commercial') || text.includes('office') || text.includes('shop')) return 'commercial';
@@ -157,7 +163,8 @@ const AnalyticsDashboard: React.FC = () => {
   // Logic: Higher duration + Low Demand = High Risk
   // Normalize Duration: 90 days = 100 risk
   // Normalize Demand: 0 calls = 100 risk
-  const recentCalls = calls.filter(c => differenceInDays(new Date(), new Date(c.createdAt)) < 7).length;
+  // RetellCall uses start_timestamp instead of createdAt
+  const recentCalls = calls.filter(c => differenceInDays(new Date(), new Date(c.start_timestamp)) < 7).length;
   const durationRisk = Math.min(100, (avgVacancyDuration / 90) * 100);
   const demandRisk = Math.max(0, 100 - (recentCalls * 5)); // 20 calls = 0 risk
   const vacancyRiskScore = Math.round((durationRisk * 0.6) + (demandRisk * 0.4));
