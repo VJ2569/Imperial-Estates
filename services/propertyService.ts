@@ -1,3 +1,4 @@
+
 import { API_CONFIG } from '../constants';
 import { Property } from '../types';
 
@@ -63,10 +64,11 @@ export const createProperty = async (property: Property): Promise<boolean> => {
     await fetchWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(property)
+      body: JSON.stringify({ ...property, action: 'add' })
     });
     return true;
   } catch (error) {
+    console.error('Create property webhook failed:', error);
     return true; // Optimistic update
   }
 };
@@ -79,26 +81,38 @@ export const updateProperty = async (property: Property): Promise<boolean> => {
     await fetchWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(property)
+      body: JSON.stringify({ ...property, action: 'update' })
     });
     return true;
   } catch (error) {
+    console.error('Update property webhook failed:', error);
     return true;
   }
 };
 
 export const deleteProperty = async (id: string): Promise<boolean> => {
+  // Use a POST request for deletion as well, as n8n webhooks often prefer POST for all actions
   const url = `${API_CONFIG.DELETE_PROPERTY}?action=delete`;
   try {
+    // Update local state first (Optimistic)
     localProperties = localProperties.filter(p => p.id !== id);
     saveStoredProperties(localProperties);
-    await fetchWithTimeout(url, {
+
+    // Send the deletion request
+    const response = await fetchWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id })
+      // Include both the ID and the action in the body for better compatibility with n8n branched workflows
+      body: JSON.stringify({ id, action: 'delete' })
     });
+
+    if (!response.ok) {
+      console.warn(`Delete webhook responded with status: ${response.status}`);
+    }
+    
     return true;
   } catch (error) {
-    return true;
+    console.error('Delete property webhook failed:', error);
+    return true; // Return true to keep the optimistic UI update
   }
 };
