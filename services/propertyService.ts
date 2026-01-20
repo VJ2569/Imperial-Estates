@@ -1,13 +1,55 @@
 
 import { API_CONFIG } from '../constants';
-import { Property } from '../types';
+import { Property, Configuration } from '../types';
 
 const STORAGE_KEY = 'imperial_estates_db';
+
+const normalizeProperty = (p: any): Property => {
+  // Ensure every property has a configurations array for project-based logic
+  const configurations = p.configurations || [
+    {
+      id: `CONFIG-${p.id || Date.now()}`,
+      name: 'Standard Unit',
+      size: p.area || 0,
+      totalUnits: 100,
+      unitsSold: p.status === 'sold' ? 100 : 0,
+      price: p.price || 0
+    }
+  ];
+
+  const minPrice = configurations.length > 0 
+    ? Math.min(...configurations.map((c: Configuration) => c.price))
+    : (p.price || 0);
+
+  return {
+    ...p,
+    id: p.id || `IMP-GEN-${Date.now().toString().slice(-3)}`,
+    title: p.title || 'Untitled Project',
+    type: p.type || 'apartment',
+    city: p.city || 'Unknown',
+    microLocation: p.microLocation || 'Unknown',
+    totalProjectSize: p.totalProjectSize || `${p.area || 0} Sqft`,
+    projectStatus: p.projectStatus || (p.status === 'available' ? 'ready' : 'under-construction'),
+    developerName: p.developerName || 'Imperial Group',
+    reraId: p.reraId || 'NOT-APPLICABLE',
+    timeline: p.timeline || p.availableFrom || 'TBD',
+    active: p.active !== undefined ? p.active : true,
+    images: p.images || [],
+    configurations: configurations,
+    // Derived fields for UI compatibility
+    price: minPrice,
+    location: p.location || `${p.microLocation || 'Unknown'}, ${p.city || 'Unknown'}`,
+    area: p.area || 0,
+    status: p.status || 'available'
+  };
+};
 
 const loadStoredProperties = (): Property[] | null => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return stored ? JSON.parse(stored) : null;
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed.map(normalizeProperty) : null;
   } catch (error) {
     return null;
   }
@@ -22,7 +64,7 @@ const saveStoredProperties = (properties: Property[]) => {
 let localProperties: Property[] = loadStoredProperties() || [];
 
 export const getStoredProperties = (): Property[] => {
-  return localProperties;
+  return localProperties.filter(p => p.active);
 };
 
 const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout = 15000) => {
@@ -40,48 +82,49 @@ const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout 
 
 export const fetchProperties = async (): Promise<Property[]> => {
   try {
-    // action=get_all tells n8n to return the property list
     const url = `${API_CONFIG.GET_ALL}?action=get_all`;
     const response = await fetchWithTimeout(url);
     if (response.ok) {
       const data = await response.json();
       const fetched = Array.isArray(data) ? data : (data.properties || []);
-      localProperties = fetched;
+      localProperties = fetched.map(normalizeProperty);
       saveStoredProperties(localProperties);
-      return localProperties;
+      return localProperties.filter(p => p.active);
     }
   } catch (error) {
     console.warn('API fetch failed, using cache.');
   }
-  return localProperties;
+  return localProperties.filter(p => p.active);
 };
 
 export const createProperty = async (property: Property): Promise<boolean> => {
   const url = `${API_CONFIG.ADD_PROPERTY}?action=add`;
   try {
-    localProperties = [...localProperties, property];
+    const normalized = normalizeProperty(property);
+    localProperties = [...localProperties, normalized];
     saveStoredProperties(localProperties);
     await fetchWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...property, action: 'add' })
+      body: JSON.stringify({ ...normalized, action: 'add' })
     });
     return true;
   } catch (error) {
     console.error('Create property webhook failed:', error);
-    return true; // Optimistic update
+    return true;
   }
 };
 
 export const updateProperty = async (property: Property): Promise<boolean> => {
   const url = `${API_CONFIG.UPDATE_PROPERTY}?action=update`;
   try {
-    localProperties = localProperties.map(p => p.id === property.id ? property : p);
+    const normalized = normalizeProperty(property);
+    localProperties = localProperties.map(p => p.id === normalized.id ? normalized : p);
     saveStoredProperties(localProperties);
     await fetchWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...property, action: 'update' })
+      body: JSON.stringify({ ...normalized, action: 'update' })
     });
     return true;
   } catch (error) {
@@ -91,28 +134,18 @@ export const updateProperty = async (property: Property): Promise<boolean> => {
 };
 
 export const deleteProperty = async (id: string): Promise<boolean> => {
-  // Use a POST request for deletion as well, as n8n webhooks often prefer POST for all actions
   const url = `${API_CONFIG.DELETE_PROPERTY}?action=delete`;
   try {
-    // Update local state first (Optimistic)
     localProperties = localProperties.filter(p => p.id !== id);
     saveStoredProperties(localProperties);
-
-    // Send the deletion request
-    const response = await fetchWithTimeout(url, {
+    await fetchWithTimeout(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // Include both the ID and the action in the body for better compatibility with n8n branched workflows
       body: JSON.stringify({ id, action: 'delete' })
     });
-
-    if (!response.ok) {
-      console.warn(`Delete webhook responded with status: ${response.status}`);
-    }
-    
     return true;
   } catch (error) {
     console.error('Delete property webhook failed:', error);
-    return true; // Return true to keep the optimistic UI update
+    return true;
   }
 };
