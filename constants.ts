@@ -10,8 +10,8 @@ export const API_CONFIG: ApiConfig = {
   DELETE_PROPERTY: BASE_WEBHOOK_URL
 };
 
-export const RETELL_CONFIG = {
-  // Retell uses an API Key for the backend and an Agent ID for the frontend
-  API_KEY: 'YOUR_RETELL_API_KEY',
-  AGENT_ID: 'YOUR_RETELL_AGENT_ID'
+export const AGENT_CONFIG = {
+  // Agent API configuration
+  API_KEY: 'YOUR_AGENT_API_KEY',
+  AGENT_ID: 'YOUR_AGENT_ID'
 };
