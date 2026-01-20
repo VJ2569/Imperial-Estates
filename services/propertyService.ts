@@ -5,7 +5,6 @@ import { Property, Configuration } from '../types';
 const STORAGE_KEY = 'imperial_estates_db';
 
 const normalizeProperty = (p: any): Property => {
-  // Ensure every property has a configurations array for project-based logic
   const configurations = p.configurations || [
     {
       id: `CONFIG-${p.id || Date.now()}`,
@@ -36,12 +35,15 @@ const normalizeProperty = (p: any): Property => {
     active: p.active !== undefined ? p.active : true,
     images: p.images || [],
     configurations: configurations,
-    // Derived fields for UI compatibility
+    amenities: p.amenities || [],
+    documents: p.documents || [],
+    description: p.description || '',
+    towerCount: p.towerCount || undefined,
+    // Derived fields
     price: minPrice,
     location: p.location || `${p.microLocation || 'Unknown'}, ${p.city || 'Unknown'}`,
     area: p.area || 0,
     status: p.status || 'available',
-    // Ensure isRental is explicitly handled during normalization
     isRental: p.isRental || false
   };
 };
