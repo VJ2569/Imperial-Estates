@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { Play, FileText, CheckCircle2, XCircle, RefreshCcw, User, X, Filter, AlertCircle } from 'lucide-react';
 import { fetchRetellCalls, getStoredRetellCalls } from '../services/retellService';
@@ -21,7 +20,7 @@ const CallHistory: React.FC = () => {
   }, [agents]);
 
   const loadAgents = () => {
-      const storedIds = localStorage.getItem('retell_agent_ids');
+      const storedIds = localStorage.getItem('agent_ids');
       if (storedIds) {
           try {
               const parsed = JSON.parse(storedIds);
@@ -29,7 +28,7 @@ const CallHistory: React.FC = () => {
           } catch (e) { console.error(e); }
       }
       if (!storedIds || JSON.parse(storedIds).length === 0) {
-          const legacyId = localStorage.getItem('retell_agent_id');
+          const legacyId = localStorage.getItem('agent_id');
           if (legacyId) {
               setAgents([{ id: legacyId, name: 'Main Agent' }]);
           }
@@ -110,7 +109,7 @@ const CallHistory: React.FC = () => {
     <div className="p-4 md:p-8 max-w-7xl mx-auto w-full">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 md:mb-8">
         <div>
-          <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Receptionist Logs (Retell AI)</h2>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white">Receptionist Logs (AI Agent)</h2>
           <p className="text-gray-500 dark:text-gray-400 text-xs md:text-sm">Success-evaluated call history</p>
         </div>
         <div className="flex items-center gap-3">
