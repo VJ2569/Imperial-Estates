@@ -40,7 +40,9 @@ const normalizeProperty = (p: any): Property => {
     price: minPrice,
     location: p.location || `${p.microLocation || 'Unknown'}, ${p.city || 'Unknown'}`,
     area: p.area || 0,
-    status: p.status || 'available'
+    status: p.status || 'available',
+    // Ensure isRental is explicitly handled during normalization
+    isRental: p.isRental || false
   };
 };
 
