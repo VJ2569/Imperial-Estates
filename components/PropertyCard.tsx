@@ -42,8 +42,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
       onClick={() => onViewDetails(property)}
       className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 flex flex-col h-full cursor-pointer group"
     >
-      {/* Image Section */}
-      <div className="relative h-60 overflow-hidden">
+      {/* Image Section - Reduced to 1/4 height (h-36) */}
+      <div className="relative h-36 overflow-hidden shrink-0">
         {imageSrc ? (
           <img 
             src={imageSrc} 
@@ -52,13 +52,13 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
           />
         ) : (
           <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
-            <Building size={48} className="text-slate-300 dark:text-slate-700" />
+            <Building size={32} className="text-slate-300 dark:text-slate-700" />
           </div>
         )}
         
         {/* Top Badges */}
-        <div className="absolute top-4 left-4 flex gap-2">
-          <span className="px-3 py-1 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm border border-white/20 dark:border-slate-800 text-slate-900 dark:text-white">
+        <div className="absolute top-3 left-3 flex gap-2">
+          <span className="px-2.5 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-lg text-[9px] font-black uppercase tracking-widest shadow-sm border border-white/20 dark:border-slate-800 text-slate-900 dark:text-white">
             {property.type}
           </span>
         </div>
@@ -69,80 +69,80 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
             e.stopPropagation();
             onCompareToggle(property);
           }}
-          className={`absolute top-4 right-4 p-2 rounded-xl backdrop-blur-md transition-all border ${
+          className={`absolute top-3 right-3 p-1.5 rounded-lg backdrop-blur-md transition-all border ${
             isCompared 
               ? 'bg-emerald-500 border-emerald-400 text-white shadow-lg' 
               : 'bg-white/40 dark:bg-slate-900/40 border-white/20 dark:border-slate-800 text-white hover:bg-white/60'
           }`}
           title="Toggle Comparison"
         >
-          <Scale size={18} />
+          <Scale size={14} />
         </button>
 
         {/* Admin Actions Overlay */}
         {!readOnly && (
-           <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-gradient-to-t from-slate-900/90 to-transparent flex justify-end gap-2">
+           <div className="absolute inset-x-0 bottom-0 p-2 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-gradient-to-t from-slate-900/90 to-transparent flex justify-end gap-1.5">
               <button 
                 onClick={(e) => { e.stopPropagation(); onEdit(property); }}
-                className="p-2.5 bg-white/10 hover:bg-blue-600 text-white rounded-xl backdrop-blur-md transition-all border border-white/10"
+                className="p-1.5 bg-white/10 hover:bg-blue-600 text-white rounded-lg backdrop-blur-md transition-all border border-white/10"
               >
-                <Edit3 size={18} />
+                <Edit3 size={14} />
               </button>
               <button 
                 onClick={(e) => { e.stopPropagation(); onDelete(property.id); }}
-                className="p-2.5 bg-white/10 hover:bg-rose-600 text-white rounded-xl backdrop-blur-md transition-all border border-white/10"
+                className="p-1.5 bg-white/10 hover:bg-rose-600 text-white rounded-lg backdrop-blur-md transition-all border border-white/10"
               >
-                <Trash2 size={18} />
+                <Trash2 size={14} />
               </button>
            </div>
         )}
-
-        <div className="absolute bottom-4 left-4 right-4 pointer-events-none group-hover:opacity-0 transition-opacity">
-          <div className="flex items-center gap-1 text-[10px] font-bold text-white/90 uppercase tracking-widest mb-1 shadow-black/20">
-             <MapPin size={10} className="text-blue-400" /> {property.city}
-          </div>
-          <h3 className="font-black text-xl text-white tracking-tight drop-shadow-md">{property.title.split('–')[0]}</h3>
-        </div>
       </div>
 
-      <div className="p-6 flex-1 flex flex-col">
-        <div className="flex items-center justify-between mb-6">
+      <div className="p-5 flex-1 flex flex-col">
+        {/* Location & Title */}
+        <div className="mb-4">
+          <div className="flex items-center gap-1 text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">
+             <MapPin size={10} className="text-blue-500" /> {property.city} • {property.microLocation}
+          </div>
+          <h3 className="font-black text-lg text-slate-900 dark:text-white tracking-tight leading-tight line-clamp-1">
+            {property.title.split('–')[0]}
+          </h3>
+        </div>
+
+        {/* Price & Status */}
+        <div className="flex items-center justify-between mb-5 py-3 border-y border-slate-50 dark:border-slate-800/50">
            <div>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest mb-1">Starting From</p>
-              <div className="flex items-center text-2xl font-black text-slate-900 dark:text-white">
-                <IndianRupee size={18} className="text-emerald-500 mr-0.5" />
+              <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest mb-0.5">Starting At</p>
+              <div className="flex items-center text-xl font-black text-slate-900 dark:text-white">
+                <IndianRupee size={14} className="text-emerald-500 mr-0.5" />
                 <span>{formatPrice(property.price)}</span>
               </div>
            </div>
            <div className="text-right">
-              <div className="flex items-center justify-end gap-1.5 text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase tracking-wider mb-1">
+              <div className="flex items-center justify-end gap-1 text-[10px] font-black text-slate-700 dark:text-slate-300 uppercase tracking-wider">
                 {getStatusIcon(property.projectStatus)}
                 {property.projectStatus.replace('-', ' ')}
               </div>
-              <p className="text-[10px] text-slate-400 font-mono tracking-tighter">{property.id}</p>
            </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-6 py-4 border-t border-slate-100 dark:border-slate-800 mb-6">
+        {/* Key Specs */}
+        <div className="grid grid-cols-2 gap-4 mb-5">
           <div>
-            <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Project Size</span>
-            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{property.totalProjectSize}</span>
+            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Land Area</span>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{property.totalProjectSize}</span>
           </div>
           <div>
-            <span className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Possession</span>
-            <span className="text-sm font-bold text-slate-800 dark:text-slate-200">{property.timeline}</span>
+            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Possession</span>
+            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">{property.timeline}</span>
           </div>
         </div>
 
-        <div className="mt-auto flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2">
-               <div className="w-6 h-6 rounded-lg bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center">
-                  <MapPin size={12} className="text-blue-600 dark:text-blue-400" />
-               </div>
-               {property.microLocation}
-            </span>
-            <div className="bg-slate-900 dark:bg-blue-600 p-2.5 rounded-xl text-white shadow-lg group-hover:scale-110 group-hover:bg-blue-600 transition-all">
-               <ArrowRight size={18} />
+        {/* Footer Actions */}
+        <div className="mt-auto pt-4 flex items-center justify-between border-t border-slate-50 dark:border-slate-800/50">
+            <span className="text-[10px] font-mono text-slate-400">ID: {property.id}</span>
+            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-bold text-xs group-hover:translate-x-1 transition-transform">
+               View Details <ArrowRight size={14} />
             </div>
         </div>
       </div>
