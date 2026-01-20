@@ -11,7 +11,13 @@ export interface Configuration {
   price: number; // Base price for this specific config
 }
 
-export interface Property { // Renamed conceptually but kept name for compatibility
+export interface ProjectDocument {
+  label: string;
+  url: string;
+  type: 'brochure' | 'floor_plan' | 'price_list';
+}
+
+export interface Property { 
   id: string; // IMP-<CITYCODE>-<PROJECTCODE>
   title: string; // <Project Name> – <Micro-location>, <City>
   type: ProjectType;
@@ -26,17 +32,22 @@ export interface Property { // Renamed conceptually but kept name for compatibil
   images: string[];
   configurations: Configuration[];
   
-  // Legacy/Additional fields for backward compatibility
+  // New Fields
+  towerCount?: number;
+  amenities: string[];
+  documents: ProjectDocument[];
   description: string;
+
+  // Legacy/Additional fields for backward compatibility
   features: string;
-  status: 'available' | 'sold' | 'rented'; // Kept for logic compatibility
+  status: 'available' | 'sold' | 'rented';
   isRental?: boolean;
   availableFrom: string;
-  location: string; // Full derived location
-  price: number; // Derived "Starts From" price
-  bedrooms: number; // Derived from configurations
-  bathrooms: number; // Derived from configurations
-  area: number; // Derived total project size
+  location: string;
+  price: number;
+  bedrooms: number;
+  bathrooms: number;
+  area: number;
 }
 
 export type PropertyFormData = Partial<Property>;
