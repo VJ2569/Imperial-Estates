@@ -69,7 +69,10 @@ export const getStoredProperties = (): Property[] => {
   return localProperties.filter(p => p.active);
 };
 
-// Extremely minimal webhook sender: No headers, no heavy assets
+/**
+ * Sends property updates to the webhook.
+ * Optimized: Removes headers and excludes images/documents to minimize payload size.
+ */
 const fireWebhook = async (url: string, data: any) => {
   const { images, documents, ...minimalData } = data;
   try {
@@ -78,7 +81,7 @@ const fireWebhook = async (url: string, data: any) => {
       body: JSON.stringify(minimalData)
     });
   } catch (e) {
-    // Fail silently to maintain UI responsiveness
+    // Fail silently to prevent UI blocking
   }
 };
 
