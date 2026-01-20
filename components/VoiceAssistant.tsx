@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState, useRef } from 'react';
 import { RetellWebClient } from 'retell-client-js-sdk';
 import { Mic, MicOff, X, Loader2, Volume2 } from 'lucide-react';
-import { RETELL_CONFIG } from '../constants';
+import { AGENT_CONFIG } from '../constants';
 
 const VoiceAssistant: React.FC = () => {
   const [isSessionActive, setIsSessionActive] = useState(false);
@@ -11,7 +10,7 @@ const VoiceAssistant: React.FC = () => {
   const retellClientRef = useRef<RetellWebClient | null>(null);
 
   const getAgentId = () => {
-    return localStorage.getItem('retell_agent_id') || RETELL_CONFIG.AGENT_ID;
+    return localStorage.getItem('agent_id') || AGENT_CONFIG.AGENT_ID;
   };
 
   useEffect(() => {
@@ -30,13 +29,9 @@ const VoiceAssistant: React.FC = () => {
     });
 
     retellClient.on('error', (error: any) => {
-      console.error('Retell Error:', error);
+      console.error('Agent Error:', error);
       setIsConnecting(false);
       setIsSessionActive(false);
-    });
-
-    retellClient.on('update', (update: any) => {
-        // Volume logic can be added here if supported by SDK version
     });
 
     return () => {
@@ -48,8 +43,8 @@ const VoiceAssistant: React.FC = () => {
     if (!retellClientRef.current) return;
     const agentId = getAgentId();
 
-    if (!agentId || agentId.includes('YOUR_RETELL')) {
-       alert("Please configure your Retell Agent ID in Settings first.");
+    if (!agentId || agentId.includes('YOUR_AGENT')) {
+       alert("Please configure your AI Agent ID in Settings first.");
        return;
     }
 
@@ -58,14 +53,11 @@ const VoiceAssistant: React.FC = () => {
     } else {
       setIsConnecting(true);
       try {
-          // Fix: Retell SDK's startCall expects an 'accessToken' in its configuration object.
-          // In a production environment, this token is typically obtained by calling 
-          // Retell's register-call API from a secure backend.
           await retellClientRef.current.startCall({
               accessToken: agentId,
           });
       } catch (err) {
-          console.error("Failed to start Retell call", err);
+          console.error("Failed to start agent call", err);
           setIsConnecting(false);
       }
     }
@@ -80,7 +72,7 @@ const VoiceAssistant: React.FC = () => {
               <span className={`relative flex h-3 w-3 rounded-full ${isConnecting ? 'bg-amber-500' : 'bg-emerald-500'}`}>
                 {isConnecting && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>}
               </span>
-              <span className="font-semibold text-sm">Retell AI Agent</span>
+              <span className="font-semibold text-sm">AI Voice Agent</span>
             </div>
             <button onClick={() => retellClientRef.current?.stopCall()} className="text-slate-400 hover:text-white"><X size={16} /></button>
           </div>
