@@ -99,6 +99,17 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
     setShowForm(true);
   };
 
+  const handleEdit = (property: Property) => {
+    if (readOnly) return;
+    setEditingProperty(property);
+    setShowForm(true);
+  };
+
+  const handleDeleteRequest = (id: string) => {
+    if (readOnly) return;
+    setDeleteConfirmationId(id);
+  };
+
   const handleEditFromDetails = () => {
     if (selectedProperty) {
       setEditingProperty(selectedProperty);
@@ -113,7 +124,10 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
           if (exists) {
               return prev.filter(p => p.id !== property.id);
           } else {
-              if (prev.length >= 3) return prev; // Max 3 projects for comparison
+              if (prev.length >= 3) {
+                alert("You can compare a maximum of 3 properties.");
+                return prev;
+              }
               return [...prev, property];
           }
       });
@@ -144,7 +158,7 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
              {compareList.length > 0 && (
                 <button
                   onClick={() => setShowComparison(true)}
-                  className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition-all font-bold shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 flex items-center gap-2 text-sm"
+                  className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition-all font-black shadow-lg shadow-emerald-200 dark:shadow-emerald-900/20 flex items-center gap-2 text-sm"
                 >
                   <Scale size={18} />
                   Compare ({compareList.length})
@@ -175,7 +189,7 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
       </div>
 
       {/* Filters & Search */}
-      <div className="mb-8 space-y-4 bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm">
+      <div className="mb-8 space-y-4 bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
@@ -184,7 +198,7 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
                 placeholder="Search projects by name, city or ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
+                className="w-full pl-12 pr-4 py-3.5 bg-slate-50 dark:bg-slate-950 border border-slate-100 dark:border-slate-800 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white"
               />
             </div>
             
@@ -194,7 +208,7 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
                   <button
                     key={type}
                     onClick={() => setSelectedType(type)}
-                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all uppercase tracking-widest shrink-0 ${
+                    className={`px-5 py-2 rounded-xl text-xs font-black transition-all uppercase tracking-widest shrink-0 ${
                       selectedType === type 
                         ? 'bg-slate-900 dark:bg-slate-700 text-white shadow-md' 
                         : 'bg-white dark:bg-slate-900 text-slate-500 border border-slate-100 dark:border-slate-800 hover:bg-slate-50'
@@ -209,9 +223,9 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
 
       {/* Grid Content */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3, 4, 5, 6].map(i => (
-            <div key={i} className="bg-white dark:bg-slate-900 h-96 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 animate-pulse"></div>
+            <div key={i} className="bg-white dark:bg-slate-900 h-96 rounded-[40px] shadow-sm border border-slate-100 dark:border-slate-800 animate-pulse"></div>
           ))}
         </div>
       ) : filteredProperties.length > 0 ? (
@@ -220,19 +234,21 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
             <PropertyCard
               key={project.id}
               property={project}
-              onEdit={openEditForm}
-              onDelete={requestDelete}
+              onEdit={handleEdit}
+              onDelete={handleDeleteRequest}
               onViewDetails={setSelectedProperty}
+              onCompareToggle={toggleCompare}
+              isCompared={compareList.some(p => p.id === project.id)}
               readOnly={readOnly}
             />
           ))}
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-3xl p-16 text-center border border-slate-100 dark:border-slate-800 shadow-sm">
-           <div className="bg-slate-50 dark:bg-slate-800 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6">
-              <LayoutGrid size={32} className="text-slate-300" />
+        <div className="bg-white dark:bg-slate-900 rounded-[40px] p-16 text-center border border-slate-100 dark:border-slate-800 shadow-sm">
+           <div className="bg-slate-50 dark:bg-slate-800 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <LayoutGrid size={40} className="text-slate-300" />
            </div>
-           <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">No Projects Found</h3>
+           <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">No Projects Found</h3>
            <p className="text-slate-500 dark:text-slate-400 max-w-sm mx-auto">Try adjusting your filters or search terms to find what you're looking for.</p>
         </div>
       )}
@@ -269,24 +285,24 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
       {/* Delete Confirmation */}
       {deleteConfirmationId && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4 z-[100]">
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800">
-            <div className="bg-rose-50 dark:bg-rose-900/20 w-12 h-12 rounded-2xl flex items-center justify-center text-rose-500 mb-6">
-               <AlertTriangle size={24} />
+          <div className="bg-white dark:bg-slate-900 rounded-[40px] p-10 max-w-md w-full shadow-2xl border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+            <div className="bg-rose-50 dark:bg-rose-900/20 w-16 h-16 rounded-2xl flex items-center justify-center text-rose-500 mb-8">
+               <AlertTriangle size={32} />
             </div>
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Delete Project?</h3>
-            <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+            <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3">Delete Project?</h3>
+            <p className="text-slate-500 dark:text-slate-400 mb-10 leading-relaxed font-medium">
               This will permanently remove the project and all its configurations. This action cannot be undone.
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-4">
               <button 
                 onClick={() => setDeleteConfirmationId(null)}
-                className="flex-1 py-3 font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors"
+                className="flex-1 py-4 font-black text-slate-500 hover:bg-slate-100 rounded-2xl transition-colors"
               >
                 Cancel
               </button>
               <button 
                 onClick={executeDelete}
-                className="flex-1 py-3 bg-rose-500 text-white font-bold rounded-xl shadow-lg shadow-rose-200 dark:shadow-rose-900/20 hover:bg-rose-600 transition-all"
+                className="flex-1 py-4 bg-rose-500 text-white font-black rounded-2xl shadow-lg shadow-rose-200 dark:shadow-rose-900/20 hover:bg-rose-600 transition-all"
               >
                 Delete Now
               </button>
@@ -296,15 +312,6 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
       )}
     </div>
   );
-};
-
-// Internal helpers for specific modal triggers inside the card
-const requestDelete = (id: string) => {
-  // This is handled via state in the main component, the PropertyCard onDelete prop calls this.
-};
-
-const openEditForm = (property: Property) => {
-  // This is handled via state in the main component.
 };
 
 export default PropertyManager;
