@@ -71,17 +71,19 @@ export const getStoredProperties = (): Property[] => {
 
 /**
  * Sends property updates to the webhook.
- * Optimized: Removes headers and excludes images/documents to minimize payload size.
+ * Restored: Includes full payload (images/docs) and standard JSON headers.
  */
 const fireWebhook = async (url: string, data: any) => {
-  const { images, documents, ...minimalData } = data;
   try {
     await fetch(url, {
       method: 'POST',
-      body: JSON.stringify(minimalData)
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
     });
   } catch (e) {
-    // Fail silently to prevent UI blocking
+    console.warn('Webhook delivery failed:', e);
   }
 };
 
