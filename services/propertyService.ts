@@ -1,4 +1,3 @@
-
 import { API_CONFIG } from '../constants';
 import { Property, Configuration } from '../types';
 
@@ -39,7 +38,6 @@ const normalizeProperty = (p: any): Property => {
     documents: p.documents || [],
     description: p.description || '',
     towerCount: p.towerCount || undefined,
-    // Derived fields
     price: minPrice,
     location: p.location || `${p.microLocation || 'Unknown'}, ${p.city || 'Unknown'}`,
     area: p.area || 0,
@@ -71,23 +69,22 @@ export const getStoredProperties = (): Property[] => {
   return localProperties.filter(p => p.active);
 };
 
-const fetchWithTimeout = async (url: string, options: RequestInit = {}, timeout = 15000) => {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
+// Extremely minimal webhook sender: No headers, no heavy assets
+const fireWebhook = async (url: string, data: any) => {
+  const { images, documents, ...minimalData } = data;
   try {
-    const response = await fetch(url, { ...options, signal: controller.signal });
-    clearTimeout(id);
-    return response;
-  } catch (error) {
-    clearTimeout(id);
-    throw error;
+    await fetch(url, {
+      method: 'POST',
+      body: JSON.stringify(minimalData)
+    });
+  } catch (e) {
+    // Fail silently to maintain UI responsiveness
   }
 };
 
 export const fetchProperties = async (): Promise<Property[]> => {
   try {
-    const url = `${API_CONFIG.GET_ALL}?action=get_all`;
-    const response = await fetchWithTimeout(url);
+    const response = await fetch(`${API_CONFIG.GET_ALL}?action=get_all`);
     if (response.ok) {
       const data = await response.json();
       const fetched = Array.isArray(data) ? data : (data.properties || []);
@@ -96,60 +93,30 @@ export const fetchProperties = async (): Promise<Property[]> => {
       return localProperties.filter(p => p.active);
     }
   } catch (error) {
-    console.warn('API fetch failed, using cache.');
+    console.warn('Sync failed, using local.');
   }
   return localProperties.filter(p => p.active);
 };
 
 export const createProperty = async (property: Property): Promise<boolean> => {
-  const url = `${API_CONFIG.ADD_PROPERTY}?action=add`;
-  try {
-    const normalized = normalizeProperty(property);
-    localProperties = [...localProperties, normalized];
-    saveStoredProperties(localProperties);
-    await fetchWithTimeout(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...normalized, action: 'add' })
-    });
-    return true;
-  } catch (error) {
-    console.error('Create property webhook failed:', error);
-    return true;
-  }
+  const normalized = normalizeProperty(property);
+  localProperties = [...localProperties, normalized];
+  saveStoredProperties(localProperties);
+  await fireWebhook(API_CONFIG.ADD_PROPERTY, { ...normalized, action: 'add' });
+  return true;
 };
 
 export const updateProperty = async (property: Property): Promise<boolean> => {
-  const url = `${API_CONFIG.UPDATE_PROPERTY}?action=update`;
-  try {
-    const normalized = normalizeProperty(property);
-    localProperties = localProperties.map(p => p.id === normalized.id ? normalized : p);
-    saveStoredProperties(localProperties);
-    await fetchWithTimeout(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...normalized, action: 'update' })
-    });
-    return true;
-  } catch (error) {
-    console.error('Update property webhook failed:', error);
-    return true;
-  }
+  const normalized = normalizeProperty(property);
+  localProperties = localProperties.map(p => p.id === normalized.id ? normalized : p);
+  saveStoredProperties(localProperties);
+  await fireWebhook(API_CONFIG.UPDATE_PROPERTY, { ...normalized, action: 'update' });
+  return true;
 };
 
 export const deleteProperty = async (id: string): Promise<boolean> => {
-  const url = `${API_CONFIG.DELETE_PROPERTY}?action=delete`;
-  try {
-    localProperties = localProperties.filter(p => p.id !== id);
-    saveStoredProperties(localProperties);
-    await fetchWithTimeout(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, action: 'delete' })
-    });
-    return true;
-  } catch (error) {
-    console.error('Delete property webhook failed:', error);
-    return true;
-  }
+  localProperties = localProperties.filter(p => p.id !== id);
+  saveStoredProperties(localProperties);
+  await fireWebhook(API_CONFIG.DELETE_PROPERTY, { id, action: 'delete' });
+  return true;
 };
