@@ -13,6 +13,7 @@ interface PropertyDetailsProps {
 
 const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProperty, onClose, onEdit, readOnly = false }) => {
   const [property, setProperty] = useState(initialProperty);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   const handleUnitSoldUpdate = async (configId: string, increment: boolean) => {
     if (readOnly) return;
@@ -37,21 +38,38 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProp
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
       <div className="bg-white dark:bg-slate-900 w-full max-w-6xl h-[90vh] rounded-[40px] shadow-3xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800">
         
-        <div className="relative h-72 shrink-0 overflow-hidden">
+        <div className="relative h-96 shrink-0 overflow-hidden group">
           {property.images && property.images.length > 0 ? (
-            <img src={property.images[0]} className="w-full h-full object-cover" />
+            <img src={property.images[activeImageIndex]} className="w-full h-full object-cover transition-all duration-700" />
           ) : (
-            <div className="w-full h-full bg-slate-900" />
+            <div className="w-full h-full bg-slate-900 flex items-center justify-center text-slate-700">No Image Available</div>
           )}
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
-          <div className="absolute top-8 left-8 right-8 flex justify-between items-start">
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent" />
+          
+          <div className="absolute top-8 left-8 right-8 flex justify-between items-start z-10">
              <div className="flex gap-2">
                 <span className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-[10px] font-black uppercase tracking-widest border border-white/10">{property.type}</span>
                 <span className="bg-blue-600 px-4 py-1.5 rounded-full text-white text-[10px] font-black uppercase tracking-widest">{property.projectStatus.replace('-', ' ')}</span>
              </div>
              <button onClick={onClose} className="bg-white/10 hover:bg-white/20 p-3 rounded-full text-white backdrop-blur-md transition-all"><X size={24} /></button>
           </div>
-          <div className="absolute bottom-10 left-10 right-10">
+
+          {/* Image Navigation Bar */}
+          {property.images && property.images.length > 1 && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 p-2 bg-black/40 backdrop-blur-md rounded-2xl z-20">
+              {property.images.map((img, idx) => (
+                <button 
+                  key={idx} 
+                  onClick={() => setActiveImageIndex(idx)}
+                  className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${activeImageIndex === idx ? 'border-blue-500 scale-110' : 'border-transparent opacity-60'}`}
+                >
+                  <img src={img} className="w-full h-full object-cover" />
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="absolute bottom-10 left-10 right-10 z-10">
              <div className="flex items-center gap-2 text-blue-400 font-mono text-sm mb-2"><MapPin size={16} /> {property.city}</div>
              <h2 className="text-4xl font-black text-white tracking-tight">{property.title}</h2>
           </div>
@@ -64,7 +82,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProp
                  
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-6 bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800">
                     <div>
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Timeline</p>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Possession</p>
                        <p className="font-bold text-slate-800 dark:text-white flex items-center gap-2">{property.timeline}</p>
                     </div>
                     <div>
@@ -74,7 +92,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProp
                        </p>
                     </div>
                     <div>
-                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Land Parcel</p>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Land Area</p>
                        <p className="font-bold text-slate-800 dark:text-white flex items-center gap-2">{property.totalProjectSize}</p>
                     </div>
                     <div>
