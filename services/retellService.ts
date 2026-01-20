@@ -1,8 +1,7 @@
-
-import { RETELL_CONFIG } from '../constants';
+import { AGENT_CONFIG } from '../constants';
 import { RetellCall } from '../types';
 
-const STORAGE_KEY = 'imperial_retell_calls';
+const STORAGE_KEY = 'imperial_agent_calls';
 
 const loadStoredCalls = (): RetellCall[] => {
   try {
@@ -17,7 +16,7 @@ const saveStoredCalls = (calls: RetellCall[]) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(calls));
   } catch (error) {
-    console.warn('Failed to save calls locally:', error);
+    console.warn('Failed to save agent calls locally:', error);
   }
 };
 
@@ -28,10 +27,10 @@ export const getStoredRetellCalls = (): RetellCall[] => {
 };
 
 export const fetchRetellCalls = async (): Promise<RetellCall[]> => {
-  const apiKey = localStorage.getItem('retell_api_key') || RETELL_CONFIG.API_KEY;
+  const apiKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
 
-  if (!apiKey || apiKey.includes('YOUR_RETELL')) {
-    console.warn("Retell API Key is missing.");
+  if (!apiKey || apiKey.includes('YOUR_AGENT')) {
+    console.warn("Agent API Key is missing.");
     return [];
   }
 
@@ -56,7 +55,7 @@ export const fetchRetellCalls = async (): Promise<RetellCall[]> => {
     
     return localCalls;
   } catch (error) {
-    console.error("Failed to fetch Retell calls:", error);
+    console.error("Failed to fetch agent calls:", error);
     return localCalls;
   }
 };
