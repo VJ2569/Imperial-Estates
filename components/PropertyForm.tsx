@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X, Save, Plus, Trash2, Building, MapPin, Calculator, FileText, Sparkles, LayoutGrid, Image as ImageIcon, Camera, Globe, Minus } from 'lucide-react';
 import { Property, PropertyFormData, Configuration, ProjectStatus, ProjectType, ProjectDocument } from '../types';
@@ -158,10 +159,10 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
   };
 
   const removeConfig = (index: number) => {
-    setFormData(prev => ({
-      ...prev,
-      configurations: (prev.configurations || []).filter((_, i) => i !== index)
-    }));
+    setFormData(prev => {
+      const newConfigs = (prev.configurations || []).filter((_, i) => i !== index);
+      return { ...prev, configurations: newConfigs };
+    });
   };
 
   const inputClass = "w-full px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white text-sm";
@@ -256,7 +257,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
               </div>
            </section>
 
-           {/* Section 3: Inventory - THE EDIT AREA with Plus/Minus */}
+           {/* Section 3: Inventory - THE EDIT AREA with Visibility Fix */}
            <section>
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
@@ -269,7 +270,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
               </div>
               <div className="space-y-6">
                 {(formData.configurations || []).map((config, index) => (
-                  <div key={config.id} className="bg-white dark:bg-slate-800/50 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow relative overflow-visible">
+                  <div key={config.id} className="bg-white dark:bg-slate-800/60 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow relative overflow-visible">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
                       <div className="md:col-span-1">
                         <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Config Type</label>
@@ -296,23 +297,35 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                         </div>
                         
                         <div className="flex flex-col gap-3">
-                           {/* Total Units Step */}
-                           <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900 px-3 py-2 rounded-xl border border-slate-100 dark:border-slate-800">
+                           {/* Total Units Step - Fixed Color */}
+                           <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/80 px-3 py-2 rounded-xl border border-slate-100 dark:border-slate-700">
                               <span className="text-[10px] font-black text-slate-400 uppercase">Total</span>
                               <div className="flex items-center gap-3">
-                                 <button onClick={() => handleConfigStep(index, 'totalUnits', -1)} className="p-1 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md"><Minus size={14} /></button>
-                                 <input type="number" value={config.totalUnits || ''} onChange={e => updateConfig(index, 'totalUnits', e.target.value ? Number(e.target.value) : undefined)} className="w-12 text-center bg-transparent font-bold text-sm outline-none" />
-                                 <button onClick={() => handleConfigStep(index, 'totalUnits', 1)} className="p-1 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md"><Plus size={14} /></button>
+                                 <button onClick={() => handleConfigStep(index, 'totalUnits', -1)} className="p-1 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"><Minus size={14} /></button>
+                                 <input 
+                                   type="number" 
+                                   value={config.totalUnits || ''} 
+                                   onChange={e => updateConfig(index, 'totalUnits', e.target.value ? Number(e.target.value) : undefined)} 
+                                   className="w-12 text-center bg-transparent font-black text-sm outline-none text-slate-900 dark:text-white" 
+                                   placeholder="--"
+                                 />
+                                 <button onClick={() => handleConfigStep(index, 'totalUnits', 1)} className="p-1 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"><Plus size={14} /></button>
                               </div>
                            </div>
                            
-                           {/* Units Sold Step */}
-                           <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/10 px-3 py-2 rounded-xl border border-emerald-100 dark:border-emerald-900/20">
+                           {/* Units Sold Step - Fixed Color */}
+                           <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-xl border border-emerald-100 dark:border-emerald-800/40">
                               <span className="text-[10px] font-black text-emerald-600 uppercase">Sold</span>
                               <div className="flex items-center gap-3">
-                                 <button onClick={() => handleConfigStep(index, 'unitsSold', -1)} className="p-1 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-md"><Minus size={14} /></button>
-                                 <input type="number" value={config.unitsSold || ''} onChange={e => updateConfig(index, 'unitsSold', e.target.value ? Number(e.target.value) : 0)} className="w-12 text-center bg-transparent font-bold text-sm text-emerald-700 dark:text-emerald-400 outline-none" />
-                                 <button onClick={() => handleConfigStep(index, 'unitsSold', 1)} className="p-1 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 rounded-md"><Plus size={14} /></button>
+                                 <button onClick={() => handleConfigStep(index, 'unitsSold', -1)} className="p-1 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-800/60 rounded-md transition-colors"><Minus size={14} /></button>
+                                 <input 
+                                   type="number" 
+                                   value={config.unitsSold || ''} 
+                                   onChange={e => updateConfig(index, 'unitsSold', e.target.value ? Number(e.target.value) : 0)} 
+                                   className="w-12 text-center bg-transparent font-black text-sm text-emerald-700 dark:text-emerald-400 outline-none" 
+                                   placeholder="--"
+                                 />
+                                 <button onClick={() => handleConfigStep(index, 'unitsSold', 1)} className="p-1 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-800/60 rounded-md transition-colors"><Plus size={14} /></button>
                               </div>
                            </div>
                         </div>
