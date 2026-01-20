@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, LayoutGrid, Filter, AlertTriangle, Share2, Scale } from 'lucide-react';
 import PropertyCard from './PropertyCard';
@@ -5,7 +6,8 @@ import PropertyForm from './PropertyForm';
 import PropertyDetails from './PropertyDetails';
 import PropertyComparison from './PropertyComparison';
 import { fetchProperties, createProperty, updateProperty, deleteProperty, getStoredProperties } from '../services/propertyService';
-import { Property, PropertyType } from '../types';
+// Fix: Import ProjectType instead of non-existent PropertyType
+import { Property, ProjectType } from '../types';
 
 interface PropertyManagerProps {
   readOnly?: boolean;
@@ -16,7 +18,8 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedType, setSelectedType] = useState<PropertyType | 'all'>('all');
+  // Fix: Use ProjectType instead of non-existent PropertyType
+  const [selectedType, setSelectedType] = useState<ProjectType | 'all'>('all');
   
   // Modal States
   const [showForm, setShowForm] = useState(false);
@@ -217,99 +220,4 @@ const PropertyManager: React.FC<PropertyManagerProps> = ({ readOnly = false, onS
           ))}
         </div>
       ) : (
-        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-800 p-8 md:p-16 text-center flex flex-col items-center justify-center">
-          <div className="bg-gray-50 dark:bg-slate-800 p-4 rounded-full mb-4">
-             <LayoutGrid size={48} className="text-gray-300 dark:text-gray-600" />
-          </div>
-          <h3 className="text-xl font-bold text-gray-800 dark:text-white mb-2">No properties found</h3>
-          <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto text-sm md:text-base">
-            We couldn't find any properties matching your search.
-          </p>
-          <button 
-            onClick={() => { setSearchQuery(''); setSelectedType('all'); }}
-            className="mt-6 text-blue-600 dark:text-blue-400 font-medium hover:underline"
-          >
-            Clear all filters
-          </button>
-        </div>
-      )}
-
-      {/* Floating Compare Button */}
-      {compareList.length > 0 && (
-          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-40 animate-in slide-in-from-bottom-10 fade-in">
-              <button
-                  onClick={() => setShowComparison(true)}
-                  className="bg-slate-900 dark:bg-blue-600 text-white px-6 py-3 rounded-full shadow-2xl flex items-center gap-3 hover:bg-slate-800 dark:hover:bg-blue-700 transition-transform hover:scale-105 active:scale-95"
-              >
-                  <Scale size={20} />
-                  <span className="font-bold">Compare ({compareList.length})</span>
-              </button>
-          </div>
-      )}
-
-      {/* Modals */}
-      {showForm && !readOnly && (
-        <PropertyForm
-          key={editingProperty ? editingProperty.id : generatedId}
-          initialData={editingProperty}
-          newId={generatedId}
-          onSave={handleCreateOrUpdate}
-          onCancel={() => setShowForm(false)}
-          isSaving={isSaving}
-        />
-      )}
-
-      {selectedProperty && (
-        <PropertyDetails
-          property={selectedProperty}
-          onClose={() => setSelectedProperty(null)}
-          onEdit={() => openEditForm(selectedProperty)}
-          readOnly={readOnly}
-        />
-      )}
-
-      {showComparison && (
-          <PropertyComparison 
-              properties={compareList} 
-              onClose={() => {
-                  setShowComparison(false);
-                  setCompareList([]);
-              }} 
-          />
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {deleteConfirmationId && !readOnly && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-slate-900 rounded-xl max-w-sm w-full shadow-2xl p-6 animate-in fade-in zoom-in duration-200 border border-gray-100 dark:border-slate-800">
-             <div className="flex flex-col items-center text-center">
-                <div className="w-12 h-12 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mb-4">
-                  <AlertTriangle className="text-rose-600 dark:text-rose-400" size={24} />
-                </div>
-                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Delete Property?</h3>
-                <p className="text-slate-600 dark:text-slate-400 mb-6 text-sm">
-                  Are you sure you want to delete this property? This action cannot be undone.
-                </p>
-                <div className="flex gap-3 w-full">
-                  <button 
-                    onClick={() => setDeleteConfirmationId(null)} 
-                    className="flex-1 px-4 py-2 border border-gray-300 dark:border-slate-700 rounded-lg text-gray-700 dark:text-gray-300 font-medium hover:bg-gray-50 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button 
-                    onClick={executeDelete} 
-                    className="flex-1 px-4 py-2 bg-rose-600 text-white rounded-lg font-medium hover:bg-rose-700 transition-colors shadow-lg shadow-rose-200 dark:shadow-rose-900/20"
-                  >
-                    Delete
-                  </button>
-                </div>
-             </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
-
-export default PropertyManager;
+        <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-gray-100 dark:border-slate-
