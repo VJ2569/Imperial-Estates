@@ -30,6 +30,7 @@ export interface Property { // Renamed conceptually but kept name for compatibil
   description: string;
   features: string;
   status: 'available' | 'sold' | 'rented'; // Kept for logic compatibility
+  isRental?: boolean;
   availableFrom: string;
   location: string; // Full derived location
   price: number; // Derived "Starts From" price
