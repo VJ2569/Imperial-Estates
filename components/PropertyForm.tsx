@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, Trash2, Building, MapPin, Calculator, FileText, Sparkles, LayoutGrid } from 'lucide-react';
+import { X, Save, Plus, Trash2, Building, MapPin, Calculator, FileText, Sparkles, LayoutGrid, Image as ImageIcon, Camera } from 'lucide-react';
 import { Property, PropertyFormData, Configuration, ProjectStatus, ProjectType, ProjectDocument } from '../types';
 
 interface PropertyFormProps {
@@ -52,6 +52,30 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
       setFormData(prev => ({ ...prev, title: formattedTitle }));
     }
   }, [projectName, formData.city, formData.microLocation, initialData]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = reader.result as string;
+        setFormData(prev => {
+          const newImages = [...(prev.images || [])];
+          newImages[index] = base64;
+          return { ...prev, images: newImages };
+        });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    setFormData(prev => {
+      const newImages = [...(prev.images || [])];
+      newImages.splice(index, 1);
+      return { ...prev, images: newImages.filter(Boolean) };
+    });
+  };
 
   const handleAddAmenity = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && newAmenity.trim()) {
@@ -160,12 +184,49 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Micro-Location</label>
                     <input type="text" value={formData.microLocation} onChange={e => setFormData({...formData, microLocation: e.target.value})} className={inputClass} required />
                  </div>
+                 <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Land Area / Project Size</label>
+                    <input type="text" value={formData.totalProjectSize} onChange={e => setFormData({...formData, totalProjectSize: e.target.value})} placeholder="e.g. 10 Acres" className={inputClass} required />
+                 </div>
                  {formData.type === 'apartment' && (
                     <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                        <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Towers / Phases</label>
                        <input type="number" value={formData.towerCount || ''} onChange={e => setFormData({...formData, towerCount: Number(e.target.value)})} placeholder="e.g. 4 Towers" className={inputClass} />
                     </div>
                  )}
+              </div>
+           </section>
+
+           <section>
+              <div className="flex items-center gap-2 mb-6 text-blue-600 dark:text-blue-400">
+                 <ImageIcon size={20} />
+                 <h3 className="font-bold text-sm uppercase tracking-widest">Project Visuals (Up to 5 Images)</h3>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                 {[0, 1, 2, 3, 4].map((index) => {
+                    const img = formData.images?.[index];
+                    return (
+                      <div key={index} className="relative aspect-video rounded-xl overflow-hidden border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex items-center justify-center group">
+                         {img ? (
+                            <>
+                               <img src={img} className="w-full h-full object-cover" />
+                               <button 
+                                 onClick={() => removeImage(index)}
+                                 className="absolute top-2 right-2 p-1.5 bg-rose-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                               >
+                                  <X size={12} />
+                               </button>
+                            </>
+                         ) : (
+                            <label className="w-full h-full flex flex-col items-center justify-center cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
+                               <Camera className="text-slate-400 mb-1" size={24} />
+                               <span className="text-[10px] font-bold text-slate-500 uppercase">Slot {index + 1}</span>
+                               <input type="file" className="hidden" accept="image/*" onChange={(e) => handleImageUpload(e, index)} />
+                            </label>
+                         )}
+                      </div>
+                    );
+                 })}
               </div>
            </section>
 
