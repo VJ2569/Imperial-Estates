@@ -1,6 +1,8 @@
-import React from 'react';
-import { X, MapPin, Bed, Bath, Square, Calendar, CheckCircle2 } from 'lucide-react';
-import { Property } from '../types';
+
+import React, { useState } from 'react';
+import { X, MapPin, Building, Calendar, IndianRupee, Shield, Plus, Minus, LayoutGrid, CheckCircle } from 'lucide-react';
+import { Property, Configuration } from '../types';
+import { updateProperty } from '../services/propertyService';
 
 interface PropertyDetailsProps {
   property: Property;
@@ -9,164 +11,209 @@ interface PropertyDetailsProps {
   readOnly?: boolean;
 }
 
-const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property, onClose, onEdit, readOnly = false }) => {
-  const formatPrice = (price: number, isRental: boolean) => {
-    if (isRental) {
-      return `₹${price.toLocaleString('en-IN')}/month`;
-    }
-    return `₹${(price / 10000000).toFixed(2)} Cr`;
+const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProperty, onClose, onEdit, readOnly = false }) => {
+  const [property, setProperty] = useState(initialProperty);
+
+  const handleUnitSoldUpdate = async (configId: string, increment: boolean) => {
+    if (readOnly) return;
+    
+    const updatedConfigs = property.configurations.map(c => {
+      if (c.id === configId) {
+        const delta = increment ? 5 : -5;
+        const newVal = Math.max(0, Math.min(c.totalUnits, c.unitsSold + delta));
+        return { ...c, unitsSold: newVal };
+      }
+      return c;
+    });
+
+    const updatedProperty = { ...property, configurations: updatedConfigs };
+    setProperty(updatedProperty);
+    await updateProperty(updatedProperty);
   };
 
-  const features = property.features ? property.features.split(',').map(f => f.trim()).filter(f => f) : [];
-  const hasImages = property.images && property.images.length > 0;
-  
-  const heroStyle = hasImages && property.images ? {
-    backgroundImage: `linear-gradient(to right, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.7)), url(${property.images[0]})`,
-    backgroundSize: 'cover',
-    backgroundPosition: 'center'
-  } : {};
+  const formatCurrency = (val: number) => `₹${(val / 10000000).toFixed(2)} Cr`;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4 z-50" onClick={onClose}>
-      <div 
-        className="bg-white dark:bg-slate-900 w-full h-full md:h-auto md:max-h-[90vh] md:max-w-4xl md:rounded-2xl shadow-2xl overflow-hidden animate-in slide-in-from-bottom-10 md:fade-in md:zoom-in duration-200 flex flex-col border border-transparent dark:border-slate-800"
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* Banner Header */}
-        <div className="relative h-48 md:h-56 bg-gradient-to-r from-slate-800 to-slate-900 p-6 md:p-8 flex flex-col justify-end shrink-0" style={heroStyle}>
-          <div className="absolute top-0 right-0 p-4 z-20">
-             <button 
-                onClick={onClose}
-                className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-full backdrop-blur-md transition-colors"
-             >
-               <X size={20} />
+    <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-6xl h-[90vh] rounded-[40px] shadow-3xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800">
+        
+        {/* Hero Section */}
+        <div className="relative h-72 shrink-0 overflow-hidden">
+          {property.images && property.images.length > 0 ? (
+            <img src={property.images[0]} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-slate-900" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/40 to-transparent" />
+          
+          <div className="absolute top-8 left-8 right-8 flex justify-between items-start">
+             <div className="flex gap-2">
+                <span className="bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-[10px] font-black uppercase tracking-widest border border-white/10">
+                   {property.type}
+                </span>
+                <span className="bg-blue-600 px-4 py-1.5 rounded-full text-white text-[10px] font-black uppercase tracking-widest">
+                   {property.projectStatus.replace('-', ' ')}
+                </span>
+             </div>
+             <button onClick={onClose} className="bg-white/10 hover:bg-white/20 p-3 rounded-full text-white backdrop-blur-md transition-all">
+                <X size={24} />
              </button>
           </div>
-          
-          <div className="relative z-10">
-             <div className="flex items-center gap-3 mb-2">
-                <span className="px-3 py-1 bg-white/20 backdrop-blur-sm rounded-full text-white text-xs font-semibold tracking-wide uppercase border border-white/10">
-                    {property.status}
-                </span>
-                <span className="text-slate-300 text-sm font-mono">{property.id}</span>
+
+          <div className="absolute bottom-10 left-10 right-10">
+             <div className="flex items-center gap-2 text-blue-400 font-mono text-sm mb-2">
+                <MapPin size={16} /> {property.city}
              </div>
-             <h2 className="text-2xl md:text-3xl font-bold text-white shadow-sm leading-tight">{property.title}</h2>
+             <h2 className="text-4xl font-black text-white tracking-tight">{property.title}</h2>
           </div>
-          {!hasImages && (
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 rounded-full mix-blend-overlay filter blur-3xl -mr-16 -mt-16"></div>
-          )}
         </div>
 
-        <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1">
-          {/* Key Stats Row */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-8 pb-8 border-b border-gray-100 dark:border-slate-800">
-            <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Price</p>
-              <p className="text-lg md:text-xl font-bold text-emerald-600 dark:text-emerald-500 truncate">{formatPrice(property.price, property.isRental)}</p>
-            </div>
-             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Type</p>
-              <p className="text-base md:text-lg font-semibold text-gray-800 dark:text-gray-200 capitalize">{property.type}</p>
-            </div>
-             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Area</p>
-              <p className="text-base md:text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center">
-                 <Square size={16} className="mr-1 text-blue-500"/> {property.area} sqft
-              </p>
-            </div>
-             <div>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Availability</p>
-              <p className="text-base md:text-lg font-semibold text-gray-800 dark:text-gray-200 flex items-center">
-                 <Calendar size={16} className="mr-1 text-blue-500"/> {property.availableFrom}
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="md:col-span-2 space-y-8">
-               
-               {/* Image Gallery */}
-               {hasImages && property.images && property.images.length > 0 && (
-                 <div>
-                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Gallery</h3>
-                    <div className="grid grid-cols-2 gap-2">
-                       {property.images.map((img, idx) => (
-                         <div key={idx} className={`rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 aspect-video group relative ${idx === 0 && property.images && property.images.length % 2 !== 0 ? 'col-span-2' : ''}`}>
-                            <img src={img} alt={`Property view ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
-                         </div>
-                       ))}
+        {/* Content Body */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-10">
+           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+              
+              {/* Main Content (Left) */}
+              <div className="lg:col-span-8 space-y-12">
+                 
+                 {/* Project At A Glance */}
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-6 bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800">
+                    <div>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Timeline</p>
+                       <p className="font-bold text-slate-800 dark:text-white flex items-center gap-2"><Calendar size={14} className="text-blue-500" /> {property.timeline}</p>
+                    </div>
+                    <div>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Developer</p>
+                       <p className="font-bold text-slate-800 dark:text-white flex items-center gap-2"><Building size={14} className="text-blue-500" /> {property.developerName}</p>
+                    </div>
+                    <div>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Land Parcel</p>
+                       <p className="font-bold text-slate-800 dark:text-white flex items-center gap-2"><LayoutGrid size={14} className="text-blue-500" /> {property.totalProjectSize}</p>
+                    </div>
+                    <div>
+                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">RERA ID</p>
+                       <p className="font-bold text-slate-800 dark:text-white flex items-center gap-2"><Shield size={14} className="text-emerald-500" /> {property.reraId}</p>
                     </div>
                  </div>
-               )}
 
-               {/* Location */}
-               <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3 flex items-center">
-                    <MapPin className="mr-2 text-blue-500" size={20}/> Location
-                  </h3>
-                  <p className="text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-slate-800 p-4 rounded-lg border border-gray-100 dark:border-slate-700">
-                    {property.location}
-                  </p>
-               </div>
+                 {/* Configurations Section */}
+                 <div>
+                    <div className="flex items-center gap-3 mb-6">
+                       <LayoutGrid size={24} className="text-blue-600" />
+                       <h3 className="text-2xl font-black text-slate-800 dark:text-white">Project Configurations</h3>
+                    </div>
+                    <div className="bg-white dark:bg-slate-900 rounded-[32px] border border-slate-200 dark:border-slate-800 overflow-hidden shadow-xl">
+                       <table className="w-full text-left">
+                          <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                             <tr>
+                                <th className="px-8 py-5">Configuration</th>
+                                <th className="px-8 py-5">Size (Sqft)</th>
+                                <th className="px-8 py-5">Total Units</th>
+                                <th className="px-8 py-5">Inventory Sold</th>
+                             </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                             {property.configurations.map(config => {
+                                const progress = (config.unitsSold / config.totalUnits) * 100;
+                                return (
+                                  <tr key={config.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/20 transition-colors group">
+                                     <td className="px-8 py-6">
+                                        <div className="font-bold text-slate-900 dark:text-white">{config.name}</div>
+                                        <div className="text-emerald-500 font-bold text-xs">{formatCurrency(config.price)}</div>
+                                     </td>
+                                     <td className="px-8 py-6">
+                                        <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-lg text-xs font-black">
+                                           {config.size} Sqft
+                                        </span>
+                                     </td>
+                                     <td className="px-8 py-6 font-bold text-slate-600 dark:text-slate-400">{config.totalUnits} Units</td>
+                                     <td className="px-8 py-6">
+                                        <div className="flex items-center gap-4">
+                                           <div className="flex-1">
+                                              <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
+                                                 <span>{config.unitsSold} Sold</span>
+                                                 <span>{Math.round(progress)}%</span>
+                                              </div>
+                                              <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                 <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${progress}%` }} />
+                                              </div>
+                                           </div>
+                                           {!readOnly && (
+                                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                 <button 
+                                                   onClick={() => handleUnitSoldUpdate(config.id, false)}
+                                                   className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-rose-500 hover:text-white transition-all shadow-sm"
+                                                 >
+                                                    <Minus size={14} />
+                                                 </button>
+                                                 <button 
+                                                   onClick={() => handleUnitSoldUpdate(config.id, true)}
+                                                   className="p-1.5 bg-slate-900 dark:bg-slate-700 text-white rounded-lg hover:bg-emerald-500 transition-all shadow-md"
+                                                 >
+                                                    <Plus size={14} />
+                                                 </button>
+                                              </div>
+                                           )}
+                                        </div>
+                                     </td>
+                                  </tr>
+                                );
+                             })}
+                          </tbody>
+                       </table>
+                    </div>
+                 </div>
 
-               {/* Description */}
-               <div>
-                  <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Description</h3>
-                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-line text-sm md:text-base">
-                    {property.description || "No description provided."}
-                  </p>
-               </div>
-
-               {/* Amenities */}
-               {features.length > 0 && (
-                <div>
-                   <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-3">Features & Amenities</h3>
-                   <div className="flex flex-wrap gap-2">
-                      {features.map((feature, idx) => (
-                        <span key={idx} className="inline-flex items-center px-3 py-1.5 rounded-full text-xs md:text-sm font-medium bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-100 dark:border-blue-800">
-                          <CheckCircle2 size={14} className="mr-1.5" />
-                          {feature}
-                        </span>
-                      ))}
-                   </div>
-                </div>
-               )}
-            </div>
-
-            {/* Sidebar Stats */}
-            <div className="md:col-span-1 space-y-4">
-              <div className="bg-gray-50 dark:bg-slate-800 rounded-xl p-5 border border-gray-100 dark:border-slate-700">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-4">Property Config</h4>
-                <div className="space-y-3">
-                   {property.bedrooms > 0 && (
-                     <div className="flex justify-between items-center text-sm">
-                       <span className="text-gray-500 dark:text-gray-400 flex items-center"><Bed size={16} className="mr-2"/> Bedrooms</span>
-                       <span className="font-medium text-gray-900 dark:text-white">{property.bedrooms}</span>
-                     </div>
-                   )}
-                   <div className="flex justify-between items-center text-sm">
-                       <span className="text-gray-500 dark:text-gray-400 flex items-center"><Bath size={16} className="mr-2"/> Bathrooms</span>
-                       <span className="font-medium text-gray-900 dark:text-white">{property.bathrooms}</span>
-                   </div>
-                   <div className="flex justify-between items-center text-sm pt-3 border-t border-gray-200 dark:border-slate-700 mt-2">
-                       <span className="text-gray-500 dark:text-gray-400">Rental?</span>
-                       <span className={`px-2 py-0.5 rounded text-xs font-semibold ${property.isRental ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300' : 'bg-gray-200 dark:bg-slate-700 text-gray-600 dark:text-gray-300'}`}>
-                         {property.isRental ? 'Yes' : 'No'}
-                       </span>
-                   </div>
-                </div>
+                 {/* Description */}
+                 <div>
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-4">About the Project</h3>
+                    <p className="text-slate-500 dark:text-slate-400 leading-relaxed max-w-2xl">
+                       {property.description || "The Imperial Estates collection presents a flagship development characterized by unmatched architectural finesse and strategic urban positioning. Designed for high-end lifestyle curation and sustainable growth."}
+                    </p>
+                 </div>
               </div>
 
-               {!readOnly && (
-                 <button 
-                  onClick={onEdit}
-                  className="w-full bg-amber-400 hover:bg-amber-500 text-amber-950 font-semibold py-3 px-4 rounded-xl transition-colors shadow-lg shadow-amber-100 dark:shadow-amber-900/20"
-                 >
-                   Edit Property
-                 </button>
-               )}
-            </div>
-          </div>
+              {/* Sidebar (Right) */}
+              <div className="lg:col-span-4 space-y-6">
+                 <div className="bg-slate-900 dark:bg-slate-800 p-8 rounded-[40px] text-white shadow-2xl sticky top-0">
+                    <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Location Profile</p>
+                    <h4 className="text-2xl font-bold mb-6">{property.microLocation}</h4>
+                    
+                    <div className="space-y-6 mb-10">
+                       <div className="flex items-start gap-4">
+                          <div className="bg-white/10 p-2 rounded-xl"><MapPin size={20} /></div>
+                          <div>
+                             <p className="text-xs font-bold text-slate-400 mb-0.5">Micro-market</p>
+                             <p className="text-sm">{property.microLocation}</p>
+                          </div>
+                       </div>
+                       <div className="flex items-start gap-4">
+                          <div className="bg-white/10 p-2 rounded-xl"><Building size={20} /></div>
+                          <div>
+                             <p className="text-xs font-bold text-slate-400 mb-0.5">Asset Type</p>
+                             <p className="text-sm capitalize">{property.type}</p>
+                          </div>
+                       </div>
+                    </div>
+
+                    {!readOnly && (
+                       <button 
+                         onClick={onEdit}
+                         className="w-full bg-blue-600 hover:bg-blue-700 py-4 rounded-2xl font-black text-sm transition-all shadow-lg shadow-blue-900/40 flex items-center justify-center gap-2"
+                       >
+                          Edit Project File
+                       </button>
+                    )}
+
+                    <div className="mt-8 pt-8 border-t border-white/10">
+                       <div className="flex items-center gap-3 text-emerald-400">
+                          <CheckCircle size={20} />
+                          <span className="text-xs font-black uppercase tracking-widest">Active Inventory</span>
+                       </div>
+                       <p className="text-[10px] text-slate-400 mt-2">All data points are synchronized with the central CRM for real-time availability tracking.</p>
+                    </div>
+                 </div>
+              </div>
+           </div>
         </div>
       </div>
     </div>
