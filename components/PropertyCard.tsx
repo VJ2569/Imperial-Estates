@@ -27,69 +27,68 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'ready': return <span className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-[10px] font-black uppercase"><CheckCircle size={12}/> Ready</span>;
-      case 'under-construction': return <span className="flex items-center gap-1.5 px-3 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg text-[10px] font-black uppercase"><Hammer size={12}/> Building</span>;
-      case 'pre-launch': return <span className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-[10px] font-black uppercase"><Building size={12}/> Launching</span>;
+      case 'ready': return <span className="flex items-center gap-2 px-4 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-emerald-100/50 dark:border-emerald-800/50"><CheckCircle size={12}/> Ready</span>;
+      case 'under-construction': return <span className="flex items-center gap-2 px-4 py-1.5 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-amber-100/50 dark:border-amber-800/50"><Hammer size={12}/> Active</span>;
+      case 'pre-launch': return <span className="flex items-center gap-2 px-4 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl text-[10px] font-black uppercase tracking-widest border border-blue-100/50 dark:border-blue-800/50"><Building size={12}/> Upcoming</span>;
       default: return null;
     }
   };
   
-  const hasImage = property.images && property.images.length > 0;
-  const imageSrc = hasImage ? property.images[0] : null;
+  const imageSrc = property.images && property.images.length > 0 ? property.images[0] : null;
 
   return (
     <div 
       onClick={() => onViewDetails(property)}
-      className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 flex flex-col h-full cursor-pointer group"
+      className="bg-white dark:bg-slate-900 rounded-[44px] shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden hover:shadow-3xl hover:-translate-y-2 transition-all duration-700 flex flex-col h-full cursor-pointer group"
     >
-      {/* Image Section */}
-      <div className="relative h-48 overflow-hidden shrink-0">
+      {/* Visual Component */}
+      <div className="relative h-56 overflow-hidden shrink-0">
         {imageSrc ? (
           <img 
             src={imageSrc} 
             alt={property.title} 
-            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105"
+            className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110"
           />
         ) : (
           <div className="w-full h-full bg-slate-50 dark:bg-slate-800 flex items-center justify-center">
-            <Building size={32} className="text-slate-200 dark:text-slate-700" />
+            <Building size={40} className="text-slate-200 dark:text-slate-700" />
           </div>
         )}
         
-        {/* Top Badges */}
-        <div className="absolute top-4 left-4">
-          <span className="px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm border border-white/20 dark:border-slate-800 text-slate-900 dark:text-white">
+        {/* Type Overlay */}
+        <div className="absolute top-6 left-6">
+          <span className="px-4 py-1.5 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl border border-white/20 dark:border-slate-800 text-slate-900 dark:text-white">
             {property.type}
           </span>
         </div>
 
-        {/* Compare Toggle */}
+        {/* Comparison Toggle */}
         <button 
           onClick={(e) => {
             e.stopPropagation();
             onCompareToggle(property);
           }}
-          className={`absolute top-4 right-4 p-2.5 rounded-xl backdrop-blur-md transition-all border ${
+          className={`absolute top-6 right-6 p-3 rounded-2xl backdrop-blur-xl transition-all border ${
             isCompared 
-              ? 'bg-emerald-500 border-emerald-400 text-white shadow-lg' 
-              : 'bg-white/40 dark:bg-slate-900/40 border-white/20 dark:border-slate-800 text-white hover:bg-white/60'
+              ? 'bg-emerald-500 border-emerald-400 text-white shadow-2xl scale-110' 
+              : 'bg-white/40 dark:bg-slate-900/40 border-white/20 dark:border-slate-800 text-white hover:bg-white/60 active:scale-90'
           }`}
         >
-          <Scale size={16} />
+          <Scale size={18} />
         </button>
 
-        {/* Admin Actions Overlay */}
+        {/* Management Actions */}
         {!readOnly && (
-           <div className="absolute inset-x-0 bottom-0 p-4 translate-y-full group-hover:translate-y-0 transition-transform duration-300 bg-gradient-to-t from-slate-900/95 via-slate-900/20 to-transparent flex justify-end gap-2">
+           <div className="absolute inset-x-0 bottom-0 p-5 translate-y-full group-hover:translate-y-0 transition-transform duration-500 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent flex justify-end gap-3">
               <button 
                 onClick={(e) => { e.stopPropagation(); onEdit(property); }}
-                className="p-2.5 bg-white/10 hover:bg-blue-600 text-white rounded-xl backdrop-blur-md transition-all border border-white/10"
+                className="p-3 bg-white/10 hover:bg-blue-600 text-white rounded-2xl backdrop-blur-xl transition-all border border-white/10 active:scale-90"
               >
                 <Edit3 size={18} />
               </button>
               <button 
                 onClick={(e) => { e.stopPropagation(); onDelete(property.id); }}
-                className="p-2.5 bg-white/10 hover:bg-rose-600 text-white rounded-xl backdrop-blur-md transition-all border border-white/10"
+                className="p-3 bg-white/10 hover:bg-rose-600 text-white rounded-2xl backdrop-blur-xl transition-all border border-white/10 active:scale-90"
               >
                 <Trash2 size={18} />
               </button>
@@ -97,21 +96,21 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
         )}
       </div>
 
-      <div className="p-6 flex-1 flex flex-col">
-        <div className="mb-4">
-          <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+      <div className="p-8 flex-1 flex flex-col">
+        <div className="mb-6">
+          <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5">
              <MapPin size={12} className="text-blue-500" /> {property.city} • {property.microLocation}
           </div>
-          <h3 className="font-black text-xl text-slate-900 dark:text-white tracking-tight leading-tight line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+          <h3 className="font-black text-2xl text-slate-900 dark:text-white tracking-tight leading-none group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
             {property.title.split('–')[0]}
           </h3>
         </div>
 
-        <div className="flex items-center justify-between mb-5 py-4 border-y border-slate-50 dark:border-slate-800/50">
+        <div className="flex items-center justify-between mb-6 py-6 border-y border-slate-50 dark:border-slate-800/50">
            <div>
-              <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-0.5">Investment From</p>
-              <div className="flex items-center text-2xl font-black text-slate-900 dark:text-white tracking-tighter">
-                <IndianRupee size={16} className="text-emerald-500 mr-0.5" />
+              <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">Asset Value From</p>
+              <div className="flex items-center text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
+                <IndianRupee size={20} className="text-emerald-500 mr-1" />
                 <span>{formatPrice(property.price)}</span>
               </div>
            </div>
@@ -120,21 +119,21 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
            </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <div className="bg-slate-50 dark:bg-slate-800/30 p-3 rounded-2xl border border-slate-50 dark:border-slate-800">
-            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Asset Scope</span>
-            <span className="text-xs font-black text-slate-800 dark:text-slate-200">{property.totalProjectSize}</span>
+        <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 transition-colors group-hover:bg-white dark:group-hover:bg-slate-800">
+            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Total Scope</span>
+            <span className="text-xs font-black text-slate-900 dark:text-slate-200">{property.totalProjectSize}</span>
           </div>
-          <div className="bg-slate-50 dark:bg-slate-800/30 p-3 rounded-2xl border border-slate-50 dark:border-slate-800">
-            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Handover</span>
-            <span className="text-xs font-black text-slate-800 dark:text-slate-200">{property.timeline}</span>
+          <div className="bg-slate-50/50 dark:bg-slate-800/50 p-4 rounded-3xl border border-slate-100 dark:border-slate-800 transition-colors group-hover:bg-white dark:group-hover:bg-slate-800">
+            <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Handover</span>
+            <span className="text-xs font-black text-slate-900 dark:text-slate-200">{property.timeline}</span>
           </div>
         </div>
 
-        <div className="mt-auto pt-4 flex items-center justify-between border-t border-slate-50 dark:border-slate-800/50">
-            <span className="text-[10px] font-mono font-bold text-slate-400 tracking-wider">REF: {property.id}</span>
-            <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400 font-black text-xs group-hover:translate-x-1 transition-transform uppercase tracking-widest">
-               Details <ArrowRight size={14} />
+        <div className="mt-auto pt-6 flex items-center justify-between border-t border-slate-50 dark:border-slate-800/50">
+            <span className="text-[10px] font-mono font-black text-slate-400 tracking-widest">REF: {property.id}</span>
+            <div className="flex items-center gap-3 text-blue-600 dark:text-blue-400 font-black text-xs group-hover:translate-x-2 transition-transform uppercase tracking-widest">
+               Explore <ArrowRight size={16} />
             </div>
         </div>
       </div>
