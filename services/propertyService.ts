@@ -71,17 +71,28 @@ export const getStoredProperties = (): Property[] => {
 
 /**
  * Sends property updates to the webhook.
- * Restored: Includes full payload (images/docs) and standard JSON headers.
+ * Standardized body to ensure n8n workflows can reliably parse actions.
  */
 const fireWebhook = async (url: string, data: any) => {
   try {
-    await fetch(url, {
+    const payload = {
+      ...data,
+      webhook_source: 'imperial_estates_dashboard',
+      timestamp: new Date().toISOString()
+    };
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
       },
-      body: JSON.stringify(data)
+      body: JSON.stringify(payload)
     });
+
+    if (!response.ok) {
+      console.error(`Webhook Error: ${response.status} ${response.statusText}`);
+    }
   } catch (e) {
     console.warn('Webhook delivery failed:', e);
   }
@@ -120,8 +131,17 @@ export const updateProperty = async (property: Property): Promise<boolean> => {
 };
 
 export const deleteProperty = async (id: string): Promise<boolean> => {
+  // Find the property before deleting to send details to webhook if needed
+  const propertyToDelete = localProperties.find(p => p.id === id);
+  
   localProperties = localProperties.filter(p => p.id !== id);
   saveStoredProperties(localProperties);
-  await fireWebhook(API_CONFIG.DELETE_PROPERTY, { id, action: 'delete' });
+  
+  // Send the clear delete instruction
+  await fireWebhook(API_CONFIG.DELETE_PROPERTY, { 
+    id, 
+    action: 'delete',
+    title: propertyToDelete?.title || 'Unknown Property'
+  });
   return true;
 };
