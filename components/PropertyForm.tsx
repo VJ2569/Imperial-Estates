@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { X, Save, Plus, Trash2, Building, MapPin, Calculator, FileText, Sparkles, LayoutGrid, Image as ImageIcon, Camera, Globe, Minus } from 'lucide-react';
 import { Property, PropertyFormData, Configuration, ProjectStatus, ProjectType, ProjectDocument } from '../types';
@@ -53,8 +52,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
 
   useEffect(() => {
     if (!initialData && formData.city && projectName && formData.microLocation) {
-      const cityCode = (formData.city.slice(0, 3)).toUpperCase();
-      const projCode = (projectName.slice(0, 3)).toUpperCase();
+      const cleanCity = formData.city.replace(/[^a-zA-Z]/g, '');
+      const cleanProj = projectName.replace(/[^a-zA-Z]/g, '');
+      
+      const cityCode = (cleanCity.slice(0, 3)).toUpperCase();
+      const projCode = (cleanProj.slice(0, 3)).toUpperCase();
       const generatedId = `IMP-${cityCode}-${projCode}`;
       setId(generatedId);
       
@@ -107,29 +109,14 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
     }));
   };
 
-  const handleDocUpload = (e: React.ChangeEvent<HTMLInputElement>, type: ProjectDocument['type'], label: string) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const newDoc: ProjectDocument = { label, type, url: reader.result as string };
-        setFormData(prev => {
-          const filteredDocs = (prev.documents || []).filter(d => d.type !== type);
-          return { ...prev, documents: [...filteredDocs, newDoc] };
-        });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const addConfiguration = () => {
     const newConfig: Configuration = {
       id: `CONFIG-${Date.now()}`,
       name: '',
-      size: undefined as any,
-      totalUnits: undefined as any,
+      size: 0,
+      totalUnits: 0,
       unitsSold: 0,
-      price: undefined as any
+      price: 0
     };
     setFormData(prev => ({
       ...prev,
@@ -149,13 +136,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
     const newVal = Math.max(0, currentVal + delta);
     updatedConfigs[index] = { ...updatedConfigs[index], [field]: newVal };
     
-    const newFormData = { ...formData, configurations: updatedConfigs };
-    setFormData(newFormData);
-
-    // If we're editing an existing property, fire the real-time webhook update
-    if (initialData) {
-      await onSave({ ...newFormData, id } as Property);
-    }
+    setFormData(prev => ({ ...prev, configurations: updatedConfigs }));
   };
 
   const removeConfig = (index: number) => {
@@ -174,9 +155,9 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
         {/* Header */}
         <div className="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-950/50">
           <div>
-            <h2 className="text-2xl font-black dark:text-white tracking-tight">{initialData ? 'Edit Asset' : 'New Project Deployment'}</h2>
+            <h2 className="text-2xl font-black dark:text-white tracking-tight">{initialData ? 'Update Asset' : 'New Project Deployment'}</h2>
             <div className="flex items-center gap-2 mt-1">
-               <span className="text-xs font-mono text-slate-500 bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded uppercase tracking-wider">{id || 'Draft'}</span>
+               <span className="text-xs font-mono text-slate-500 bg-slate-200 dark:bg-slate-800 px-2 py-0.5 rounded uppercase tracking-wider">{id || 'Drafting...'}</span>
                {formData.title && <span className="text-xs text-slate-400 font-medium truncate max-w-xs">{formData.title}</span>}
             </div>
           </div>
@@ -257,7 +238,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
               </div>
            </section>
 
-           {/* Section 3: Inventory - THE EDIT AREA with Visibility Fix */}
+           {/* Section 3: Inventory */}
            <section>
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
@@ -270,7 +251,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
               </div>
               <div className="space-y-6">
                 {(formData.configurations || []).map((config, index) => (
-                  <div key={config.id} className="bg-white dark:bg-slate-800/60 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow relative overflow-visible">
+                  <div key={config.id} className="bg-white dark:bg-slate-800/60 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-md transition-all relative overflow-visible">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
                       <div className="md:col-span-1">
                         <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Config Type</label>
@@ -279,12 +260,12 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                       
                       <div>
                         <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Area (Sqft)</label>
-                        <input type="number" value={config.size || ''} onChange={e => updateConfig(index, 'size', e.target.value ? Number(e.target.value) : undefined)} className={inputClass} />
+                        <input type="number" value={config.size || ''} onChange={e => updateConfig(index, 'size', e.target.value ? Number(e.target.value) : 0)} className={inputClass} />
                       </div>
 
                       <div className="relative">
                         <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Starting (₹ Raw)</label>
-                        <input type="number" value={config.price || ''} onChange={e => updateConfig(index, 'price', e.target.value ? Number(e.target.value) : undefined)} placeholder="e.g. 25000000" className={inputClass} />
+                        <input type="number" value={config.price || ''} onChange={e => updateConfig(index, 'price', e.target.value ? Number(e.target.value) : 0)} placeholder="e.g. 25000000" className={inputClass} />
                         <div className="h-4 mt-1 text-[10px] font-bold text-emerald-600 dark:text-emerald-400 animate-in fade-in slide-in-from-top-1">
                           {toIndianWords(config.price)}
                         </div>
@@ -297,27 +278,27 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                         </div>
                         
                         <div className="flex flex-col gap-3">
-                           {/* Total Units Step - Fixed Color */}
+                           {/* Total Units Step */}
                            <div className="flex items-center justify-between bg-slate-50 dark:bg-slate-900/80 px-3 py-2 rounded-xl border border-slate-100 dark:border-slate-700">
                               <span className="text-[10px] font-black text-slate-400 uppercase">Total</span>
                               <div className="flex items-center gap-3">
-                                 <button onClick={() => handleConfigStep(index, 'totalUnits', -1)} className="p-1 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"><Minus size={14} /></button>
+                                 <button type="button" onClick={() => handleConfigStep(index, 'totalUnits', -1)} className="p-1 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"><Minus size={14} /></button>
                                  <input 
                                    type="number" 
                                    value={config.totalUnits || ''} 
-                                   onChange={e => updateConfig(index, 'totalUnits', e.target.value ? Number(e.target.value) : undefined)} 
+                                   onChange={e => updateConfig(index, 'totalUnits', e.target.value ? Number(e.target.value) : 0)} 
                                    className="w-12 text-center bg-transparent font-black text-sm outline-none text-slate-900 dark:text-white" 
                                    placeholder="--"
                                  />
-                                 <button onClick={() => handleConfigStep(index, 'totalUnits', 1)} className="p-1 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"><Plus size={14} /></button>
+                                 <button type="button" onClick={() => handleConfigStep(index, 'totalUnits', 1)} className="p-1 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-md transition-colors"><Plus size={14} /></button>
                               </div>
                            </div>
                            
-                           {/* Units Sold Step - Fixed Color */}
+                           {/* Units Sold Step */}
                            <div className="flex items-center justify-between bg-emerald-50 dark:bg-emerald-900/20 px-3 py-2 rounded-xl border border-emerald-100 dark:border-emerald-800/40">
                               <span className="text-[10px] font-black text-emerald-600 uppercase">Sold</span>
                               <div className="flex items-center gap-3">
-                                 <button onClick={() => handleConfigStep(index, 'unitsSold', -1)} className="p-1 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-800/60 rounded-md transition-colors"><Minus size={14} /></button>
+                                 <button type="button" onClick={() => handleConfigStep(index, 'unitsSold', -1)} className="p-1 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-800/60 rounded-md transition-colors"><Minus size={14} /></button>
                                  <input 
                                    type="number" 
                                    value={config.unitsSold || ''} 
@@ -325,7 +306,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                                    className="w-12 text-center bg-transparent font-black text-sm text-emerald-700 dark:text-emerald-400 outline-none" 
                                    placeholder="--"
                                  />
-                                 <button onClick={() => handleConfigStep(index, 'unitsSold', 1)} className="p-1 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-800/60 rounded-md transition-colors"><Plus size={14} /></button>
+                                 <button type="button" onClick={() => handleConfigStep(index, 'unitsSold', 1)} className="p-1 text-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-800/60 rounded-md transition-colors"><Plus size={14} /></button>
                               </div>
                            </div>
                         </div>
@@ -335,7 +316,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                 ))}
                 {(!formData.configurations || formData.configurations.length === 0) && (
                    <div className="py-10 text-center border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[32px] text-slate-400 text-sm italic">
-                      No configurations defined for this project.
+                      Define project unit types to begin deployment.
                    </div>
                 )}
               </div>
@@ -356,7 +337,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                             <>
                                <img src={img} className="w-full h-full object-cover" />
                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
-                                  <button onClick={() => removeImage(index)} className="p-2 bg-rose-500 text-white rounded-full shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                                  <button type="button" onClick={() => removeImage(index)} className="p-2 bg-rose-500 text-white rounded-full shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
                                      <Trash2 size={16} />
                                   </button>
                                </div>
@@ -382,7 +363,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                     value={formData.description} 
                     onChange={e => setFormData({...formData, description: e.target.value})}
                     rows={5}
-                    placeholder="Craft a compelling story..."
+                    placeholder="Describe the lifestyle and USP of this development..."
                     className={inputClass + " resize-none h-[180px]"}
                  />
               </div>
@@ -397,14 +378,14 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                        value={newAmenity}
                        onChange={e => setNewAmenity(e.target.value)}
                        onKeyDown={handleAddAmenity}
-                       placeholder="Type and press Enter"
+                       placeholder="Type amenity and press Enter"
                        className={inputClass}
                     />
                     <div className="flex flex-wrap gap-2 max-h-[120px] overflow-y-auto p-1">
                        {formData.amenities?.map(amenity => (
                           <span key={amenity} className="px-3 py-1.5 bg-white dark:bg-slate-800 text-slate-700 dark:text-white rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 flex items-center gap-2 group animate-in zoom-in-90">
                              {amenity}
-                             <button onClick={() => removeAmenity(amenity)} className="text-slate-400 hover:text-rose-500 transition-colors">
+                             <button type="button" onClick={() => removeAmenity(amenity)} className="text-slate-400 hover:text-rose-500 transition-colors">
                                 <X size={14} />
                              </button>
                           </span>
@@ -418,8 +399,12 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
         {/* Action Footer */}
         <div className="p-8 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-4 bg-white dark:bg-slate-900 shrink-0 z-20 shadow-[0_-10px_20px_-15px_rgba(0,0,0,0.1)]">
            <button onClick={onCancel} className="px-8 py-3.5 font-black text-slate-500 hover:bg-slate-100 rounded-2xl transition-colors text-sm">Dismiss</button>
-           <button onClick={() => onSave({...formData, id} as Property)} disabled={isSaving} className="px-12 py-3.5 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20 flex items-center gap-3 hover:bg-blue-700 disabled:opacity-50 transition-all hover:-translate-y-0.5 active:translate-y-0 text-sm">
-              {isSaving ? 'Processing...' : <><Save size={20} /> Commit Project</>}
+           <button 
+             onClick={() => onSave({...formData, id} as Property)} 
+             disabled={isSaving} 
+             className="px-12 py-3.5 bg-blue-600 text-white font-black rounded-2xl shadow-xl shadow-blue-500/20 flex items-center gap-3 hover:bg-blue-700 disabled:opacity-50 transition-all hover:-translate-y-0.5 active:translate-y-0 text-sm"
+           >
+              {isSaving ? 'Processing...' : <><Save size={20} /> Commit Deployment</>}
            </button>
         </div>
       </div>
