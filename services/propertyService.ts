@@ -20,8 +20,8 @@ const normalizeProperty = (p: any): Property => {
       id: `CONFIG-${p.id || Date.now()}`,
       name: 'Standard Unit',
       size: p.area || 0,
-      totalUnits: 0,
-      unitsSold: 0,
+      totalUnits: ,
+      unitsSold: ,
       price: p.price || 0
     }
   ];
