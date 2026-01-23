@@ -17,13 +17,14 @@ export const generateUniqueId = (): string => {
 const normalizeProperty = (p: any): Property => {
   const configurations = p.configurations || [
     {
-      id: `CONFIG-${p.id || Date.now()}`,
-      name: 'Standard Unit',
-      size: p.area || 0,
-      totalUnits: ,
-      unitsSold: ,
-      price: p.price || 0
-    }
+  id: `CONFIG-${p.id || Date.now()}`,
+  name: 'Standard Unit',
+  size: p.area ?? null,
+  totalUnits: null,
+  unitsSold: null,
+  price: p.price ?? null
+}
+
   ];
 
   const minPrice = configurations.length > 0 
