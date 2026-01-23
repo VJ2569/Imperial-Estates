@@ -58,7 +58,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
   }, [projectName, formData.city, formData.microLocation]);
 
   const toIndianWords = (num: number | undefined): string => {
-    if (!num || isNaN(num)) return '';
+    if (!num || isNaN(num) || num === 0) return '';
     if (num >= 10000000) return `${(num / 10000000).toFixed(2)} Crore`;
     if (num >= 100000) return `${(num / 100000).toFixed(2)} Lakh`;
     return num.toLocaleString('en-IN');
@@ -120,7 +120,9 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
     }
   };
 
-  const inputClass = "w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white text-sm font-semibold text-slate-900";
+  const inputClass = "w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-slate-100 text-sm font-semibold text-slate-900";
+  const labelHeaderClass = "font-black text-xs uppercase tracking-[0.2em] text-slate-800 dark:text-slate-200";
+  const subLabelClass = "block text-[10px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2.5";
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-[60]">
@@ -140,7 +142,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                     </button>
                   )}
                </div>
-               {formData.title && <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest truncate max-w-sm">{formData.title}</span>}
+               {formData.title && <span className="text-[10px] font-black text-slate-500 dark:text-slate-300 uppercase tracking-widest truncate max-w-sm">{formData.title}</span>}
             </div>
           </div>
           <button onClick={onCancel} className="p-3 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full transition-all active:scale-95 dark:text-white">
@@ -154,15 +156,15 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
            <section>
               <div className="flex items-center gap-2 mb-8 text-blue-600 dark:text-blue-400">
                  <Building size={20} className="shrink-0" />
-                 <h3 className="font-black text-xs uppercase tracking-[0.2em]">Market Identification</h3>
+                 <h3 className={labelHeaderClass}>Market Identification</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                  <div className="md:col-span-2">
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Project Nomenclature</label>
+                    <label className={subLabelClass}>Project Nomenclature</label>
                     <input type="text" value={projectName} onChange={e => setProjectName(e.target.value)} placeholder="e.g. Imperial Heritage" className={inputClass} required />
                  </div>
                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Asset Classification</label>
+                    <label className={subLabelClass}>Asset Classification</label>
                     <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value as ProjectType})} className={inputClass}>
                        <option value="apartment">Residential Apartment</option>
                        <option value="villa">Luxury Villa</option>
@@ -170,15 +172,15 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                     </select>
                  </div>
                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Operational City</label>
+                    <label className={subLabelClass}>Operational City</label>
                     <input type="text" value={formData.city} onChange={e => setFormData({...formData, city: e.target.value})} placeholder="e.g. Mumbai" className={inputClass} required />
                  </div>
                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Micro-Location</label>
+                    <label className={subLabelClass}>Micro-Location</label>
                     <input type="text" value={formData.microLocation} onChange={e => setFormData({...formData, microLocation: e.target.value})} placeholder="e.g. Lower Parel" className={inputClass} required />
                  </div>
                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Lifecycle Stage</label>
+                    <label className={subLabelClass}>Lifecycle Stage</label>
                     <select value={formData.projectStatus} onChange={e => setFormData({...formData, projectStatus: e.target.value as ProjectStatus})} className={inputClass}>
                        <option value="pre-launch">Pre-Launch</option>
                        <option value="under-construction">Active Construction</option>
@@ -192,28 +194,28 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
            <section>
               <div className="flex items-center gap-2 mb-8 text-emerald-600 dark:text-emerald-400">
                  <Globe size={20} className="shrink-0" />
-                 <h3 className="font-black text-xs uppercase tracking-[0.2em]">Asset Specifications</h3>
+                 <h3 className={labelHeaderClass}>Asset Specifications</h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-8 p-8 bg-slate-50/50 dark:bg-slate-800/40 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-inner">
                  <div className="md:col-span-2">
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Developer Name</label>
+                    <label className={subLabelClass}>Developer Name</label>
                     <input type="text" value={formData.developerName} onChange={e => setFormData({...formData, developerName: e.target.value})} placeholder="e.g. Imperial Group" className={inputClass} />
                  </div>
                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Project Footprint (Size)</label>
+                    <label className={subLabelClass}>Project Footprint (Size)</label>
                     <input type="text" value={formData.totalProjectSize} onChange={e => setFormData({...formData, totalProjectSize: e.target.value})} placeholder="e.g. 2.4 Million Sqft" className={inputClass} />
                  </div>
                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Target Possession</label>
+                    <label className={subLabelClass}>Target Possession</label>
                     <input type="text" value={formData.timeline} onChange={e => setFormData({...formData, timeline: e.target.value})} placeholder="e.g. Q4 2027" className={inputClass} />
                  </div>
                  <div className="md:col-span-2">
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">RERA Registration</label>
+                    <label className={subLabelClass}>RERA Registration</label>
                     <input type="text" value={formData.reraId} onChange={e => setFormData({...formData, reraId: e.target.value})} placeholder="PRM/XX/YYY" className={inputClass} />
                  </div>
                  <div>
-                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Tower Count</label>
-                    <input type="number" value={formData.towerCount || ''} onChange={e => setFormData({...formData, towerCount: e.target.value ? Number(e.target.value) : undefined})} placeholder="Towers" className={inputClass} />
+                    <label className={subLabelClass}>Tower Count</label>
+                    <input type="number" value={formData.towerCount ?? ''} onChange={e => setFormData({...formData, towerCount: e.target.value ? Number(e.target.value) : undefined})} placeholder="Towers" className={inputClass} />
                  </div>
               </div>
            </section>
@@ -223,7 +225,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400">
                    <LayoutGrid size={20} className="shrink-0" />
-                   <h3 className="font-black text-xs uppercase tracking-[0.2em]">Configuration Matrix</h3>
+                   <h3 className={labelHeaderClass}>Configuration Matrix</h3>
                 </div>
                 <button type="button" onClick={addConfiguration} className="px-6 py-3 bg-slate-900 dark:bg-blue-600 text-white text-[10px] font-black rounded-xl flex items-center gap-2 hover:bg-slate-800 transition-all shadow-xl active:scale-95 uppercase tracking-widest">
                   <Plus size={16} /> New Configuration
@@ -234,19 +236,19 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                   <div key={config.id} className="bg-white dark:bg-slate-800/60 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-sm relative group hover:border-blue-500/30 transition-all">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
                       <div className="md:col-span-1">
-                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Unit Typology</label>
+                        <label className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-2">Unit Typology</label>
                         <input type="text" value={config.name} onChange={e => updateConfig(index, 'name', e.target.value)} placeholder="e.g. 4BHK Grand" className={inputClass} />
                       </div>
                       <div>
-                        <label className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Base Pricing (₹)</label>
-                        <input type="number" value={config.price || ''} onChange={e => updateConfig(index, 'price', Number(e.target.value))} className={inputClass} />
+                        <label className="block text-[9px] font-black text-slate-500 dark:text-slate-400 uppercase tracking-[0.2em] mb-2">Base Pricing (₹)</label>
+                        <input type="number" value={config.price || ''} onChange={e => updateConfig(index, 'price', e.target.value ? Number(e.target.value) : undefined)} className={inputClass} placeholder="Enter Amount" />
                         <div className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 mt-2 px-1">{toIndianWords(config.price)}</div>
                       </div>
                       
                       <div className="md:col-span-2 flex items-end gap-6">
                         <div className="flex-1 bg-slate-100/50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-200/50 dark:border-slate-700/50">
                            <div className="flex justify-between items-center mb-5">
-                              <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Global Allocation</span>
+                              <span className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase tracking-widest">Total Inventory</span>
                               <div className="flex items-center gap-4">
                                 <button type="button" onClick={() => handleConfigStep(index, 'totalUnits', -1)} className="p-1.5 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg text-slate-900 dark:text-white transition-colors"><Minus size={16} /></button>
                                 <span className="font-black text-base text-slate-900 dark:text-white min-w-[2.5rem] text-center">{config.totalUnits || 0}</span>
@@ -254,7 +256,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                               </div>
                            </div>
                            <div className="flex justify-between items-center">
-                              <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Inventory Sold</span>
+                              <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Inventory Sold</span>
                               <div className="flex items-center gap-4">
                                 <button type="button" onClick={() => handleConfigStep(index, 'unitsSold', -1)} className="p-1.5 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 rounded-lg text-emerald-700 dark:text-emerald-400 transition-colors"><Minus size={16} /></button>
                                 <span className="font-black text-base text-emerald-700 dark:text-emerald-400 min-w-[2.5rem] text-center">{config.unitsSold || 0}</span>
@@ -276,7 +278,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
            <section>
               <div className="flex items-center gap-2 mb-8 text-purple-600 dark:text-purple-400">
                  <ImageIcon size={20} className="shrink-0" />
-                 <h3 className="font-black text-xs uppercase tracking-[0.2em]">Project Visual Gallery</h3>
+                 <h3 className={labelHeaderClass}>Project Visual Gallery</h3>
               </div>
               <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                  {[0, 1, 2, 3, 4].map((idx) => (
@@ -305,20 +307,20 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
               <div>
                 <div className="flex items-center gap-2 mb-6">
                    <ImageIcon size={20} className="text-purple-600" />
-                   <h3 className="font-black text-xs uppercase tracking-[0.2em]">Project Narrative</h3>
+                   <h3 className={labelHeaderClass}>Project Narrative</h3>
                 </div>
                 <textarea 
                    value={formData.description} 
                    onChange={e => setFormData({...formData, description: e.target.value})}
                    rows={6}
                    placeholder="Describe the architectural vision, luxury amenities, and lifestyle USPs..."
-                   className={inputClass + " resize-none h-[220px]"}
+                   className={inputClass + " resize-none h-[220px] dark:text-slate-200"}
                 />
               </div>
               <div>
                 <div className="flex items-center gap-2 mb-6">
                    <Sparkles size={20} className="text-emerald-500" />
-                   <h3 className="font-black text-xs uppercase tracking-[0.2em]">Amenities & Lifestyle</h3>
+                   <h3 className={labelHeaderClass}>Amenities & Lifestyle</h3>
                 </div>
                 <div className="space-y-4">
                   <input 
@@ -331,7 +333,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                   />
                   <div className="flex flex-wrap gap-2.5 pt-2 max-h-[160px] overflow-y-auto p-1 custom-scrollbar">
                      {formData.amenities?.map(amenity => (
-                        <span key={amenity} className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white rounded-xl text-xs font-black border border-slate-200 dark:border-slate-700 flex items-center gap-3 animate-in fade-in zoom-in-95 group transition-all hover:border-blue-400">
+                        <span key={amenity} className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-black border border-slate-200 dark:border-slate-700 flex items-center gap-3 animate-in fade-in zoom-in-95 group transition-all hover:border-blue-400">
                            {amenity}
                            <button type="button" onClick={() => setFormData(prev => ({...prev, amenities: prev.amenities?.filter(a => a !== amenity)}))} className="text-slate-400 hover:text-rose-500 transition-colors">
                               <X size={14} />
@@ -346,7 +348,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
 
         {/* Action Footer */}
         <div className="p-10 border-t border-slate-100 dark:border-slate-800 flex justify-end gap-6 bg-white dark:bg-slate-900 shrink-0 z-20">
-           <button onClick={onCancel} className="px-10 py-4 font-black text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all text-sm uppercase tracking-widest">Discard</button>
+           <button onClick={onCancel} className="px-10 py-4 font-black text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-2xl transition-all text-sm uppercase tracking-widest">Discard</button>
            <button 
              onClick={() => {
                 if (!projectName || !formData.city) {
