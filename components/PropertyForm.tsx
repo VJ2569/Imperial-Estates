@@ -27,22 +27,22 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
     timeline: '',
     active: true,
     images: [],
-    configurations: [],
-    amenities: [],
-    documents: [],
+    configurations: initialData?.configurations || [],
+    amenities: initialData?.amenities || [],
+    documents: initialData?.documents || [],
     description: '',
     towerCount: undefined,
     ...initialData
   });
 
-  // Initialize unique ID for new assets
+  // Unique ID for new projects
   useEffect(() => {
     if (!initialData && !id) {
       setId(generateUniqueId());
     }
   }, [initialData, id]);
 
-  // Sync project name state with incoming data
+  // Sync state with initial data
   useEffect(() => {
     if (initialData?.title) {
         setProjectName(initialData.title.split('–')[0].trim());
@@ -120,22 +120,22 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
     }
   };
 
-  const inputClass = "w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white text-sm font-semibold text-slate-900";
+  const inputClass = "w-full px-4 py-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white text-sm font-semibold text-slate-900";
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 z-[60]">
-      <div className="bg-white dark:bg-slate-900 w-full max-w-5xl h-[92vh] rounded-[48px] shadow-3xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800">
+      <div className="bg-white dark:bg-slate-900 w-full max-w-6xl h-[92vh] rounded-[48px] shadow-3xl flex flex-col overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-300">
         
         {/* Header */}
         <div className="p-10 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/30 dark:bg-slate-950/30">
           <div>
             <h2 className="text-3xl font-black dark:text-white tracking-tight leading-none">{initialData ? 'Update Asset' : 'Deploy New Project'}</h2>
             <div className="flex items-center gap-4 mt-3">
-               <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700">
+               <div className="flex items-center gap-2 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-xl border border-slate-200/50 dark:border-slate-700 shadow-sm">
                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Asset Reference:</span>
                   <span className="text-xs font-mono font-black text-blue-600 dark:text-blue-400">{id}</span>
                   {!initialData && (
-                    <button onClick={() => setId(generateUniqueId())} className="ml-1 text-slate-400 hover:text-blue-500 transition-colors" title="Generate New ID">
+                    <button onClick={() => setId(generateUniqueId())} className="ml-1 text-slate-400 hover:text-blue-500 transition-all active:rotate-180" title="Generate New ID">
                        <RefreshCw size={12} />
                     </button>
                   )}
@@ -194,7 +194,11 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                  <Globe size={20} className="shrink-0" />
                  <h3 className="font-black text-xs uppercase tracking-[0.2em]">Asset Specifications</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 p-8 bg-slate-50/50 dark:bg-slate-800/40 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-inner">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8 p-8 bg-slate-50/50 dark:bg-slate-800/40 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-inner">
+                 <div className="md:col-span-2">
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Developer Name</label>
+                    <input type="text" value={formData.developerName} onChange={e => setFormData({...formData, developerName: e.target.value})} placeholder="e.g. Imperial Group" className={inputClass} />
+                 </div>
                  <div>
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Project Footprint (Size)</label>
                     <input type="text" value={formData.totalProjectSize} onChange={e => setFormData({...formData, totalProjectSize: e.target.value})} placeholder="e.g. 2.4 Million Sqft" className={inputClass} />
@@ -203,9 +207,13 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Target Possession</label>
                     <input type="text" value={formData.timeline} onChange={e => setFormData({...formData, timeline: e.target.value})} placeholder="e.g. Q4 2027" className={inputClass} />
                  </div>
-                 <div>
+                 <div className="md:col-span-2">
                     <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">RERA Registration</label>
                     <input type="text" value={formData.reraId} onChange={e => setFormData({...formData, reraId: e.target.value})} placeholder="PRM/XX/YYY" className={inputClass} />
+                 </div>
+                 <div>
+                    <label className="block text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2.5">Tower Count</label>
+                    <input type="number" value={formData.towerCount || ''} onChange={e => setFormData({...formData, towerCount: e.target.value ? Number(e.target.value) : undefined})} placeholder="Towers" className={inputClass} />
                  </div>
               </div>
            </section>
@@ -223,7 +231,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
               </div>
               <div className="space-y-6">
                 {formData.configurations?.map((config, index) => (
-                  <div key={config.id} className="bg-white dark:bg-slate-800/60 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-sm relative group hover:border-blue-500/30 transition-colors">
+                  <div key={config.id} className="bg-white dark:bg-slate-800/60 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 shadow-sm relative group hover:border-blue-500/30 transition-all">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8 items-start">
                       <div className="md:col-span-1">
                         <label className="block text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2">Unit Typology</label>
@@ -264,7 +272,35 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
               </div>
            </section>
 
-           {/* Asset Narrative */}
+           {/* Section 4: Visuals */}
+           <section>
+              <div className="flex items-center gap-2 mb-8 text-purple-600 dark:text-purple-400">
+                 <ImageIcon size={20} className="shrink-0" />
+                 <h3 className="font-black text-xs uppercase tracking-[0.2em]">Project Visual Gallery</h3>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                 {[0, 1, 2, 3, 4].map((idx) => (
+                    <div key={idx} className="relative aspect-video rounded-3xl overflow-hidden border-2 border-dashed border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 group hover:border-blue-400 transition-all flex items-center justify-center">
+                       {formData.images?.[idx] ? (
+                          <>
+                             <img src={formData.images[idx]} className="w-full h-full object-cover" />
+                             <button type="button" onClick={() => setFormData(p => ({...p, images: p.images?.filter((_, i) => i !== idx)}))} className="absolute top-3 right-3 p-2 bg-rose-500 text-white rounded-xl opacity-0 group-hover:opacity-100 transition-all shadow-xl hover:scale-110 active:scale-90">
+                                <Trash2 size={16} />
+                             </button>
+                          </>
+                       ) : (
+                          <label className="cursor-pointer flex flex-col items-center gap-2 group/label">
+                             <Camera size={28} className="text-slate-400 group-hover/label:text-blue-500 transition-colors" />
+                             <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest group-hover/label:text-blue-500">Asset {idx + 1}</span>
+                             <input type="file" className="hidden" accept="image/*" onChange={e => handleImageUpload(e, idx)} />
+                          </label>
+                       )}
+                    </div>
+                 ))}
+              </div>
+           </section>
+
+           {/* Section 5: Narrative & Amenities */}
            <section className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div>
                 <div className="flex items-center gap-2 mb-6">
@@ -275,7 +311,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                    value={formData.description} 
                    onChange={e => setFormData({...formData, description: e.target.value})}
                    rows={6}
-                   placeholder="Outline the architectural vision, luxury amenities, and unique selling propositions..."
+                   placeholder="Describe the architectural vision, luxury amenities, and lifestyle USPs..."
                    className={inputClass + " resize-none h-[220px]"}
                 />
               </div>
@@ -290,12 +326,12 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                      value={newAmenity}
                      onChange={e => setNewAmenity(e.target.value)}
                      onKeyDown={handleAddAmenity}
-                     placeholder="Type and press Enter to add..."
+                     placeholder="Type amenity and press Enter..."
                      className={inputClass}
                   />
-                  <div className="flex flex-wrap gap-2.5 pt-2">
+                  <div className="flex flex-wrap gap-2.5 pt-2 max-h-[160px] overflow-y-auto p-1 custom-scrollbar">
                      {formData.amenities?.map(amenity => (
-                        <span key={amenity} className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white rounded-xl text-xs font-black border border-slate-200 dark:border-slate-700 flex items-center gap-3 animate-in fade-in zoom-in-95">
+                        <span key={amenity} className="px-4 py-2 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-white rounded-xl text-xs font-black border border-slate-200 dark:border-slate-700 flex items-center gap-3 animate-in fade-in zoom-in-95 group transition-all hover:border-blue-400">
                            {amenity}
                            <button type="button" onClick={() => setFormData(prev => ({...prev, amenities: prev.amenities?.filter(a => a !== amenity)}))} className="text-slate-400 hover:text-rose-500 transition-colors">
                               <X size={14} />
@@ -314,7 +350,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
            <button 
              onClick={() => {
                 if (!projectName || !formData.city) {
-                  alert("Deployment halted: Project Name and Primary City are mandatory.");
+                  alert("Project Name and City are mandatory for deployment.");
                   return;
                 }
                 onSave({...formData, id} as Property);
