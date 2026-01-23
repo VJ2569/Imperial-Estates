@@ -20,14 +20,14 @@ const normalizeProperty = (p: any): Property => {
       id: `CONFIG-${p.id || Date.now()}`,
       name: 'Standard Unit',
       size: p.area || 0,
-      totalUnits: 100,
-      unitsSold: p.status === 'sold' ? 100 : 0,
+      totalUnits: 0,
+      unitsSold: 0,
       price: p.price || 0
     }
   ];
 
   const minPrice = configurations.length > 0 
-    ? Math.min(...configurations.map((c: Configuration) => c.price))
+    ? Math.min(...configurations.map((c: Configuration) => c.price || 0))
     : (p.price || 0);
 
   return {
@@ -146,7 +146,6 @@ export const deleteProperty = async (id: string): Promise<boolean> => {
   localProperties = localProperties.filter(p => p.id !== id);
   saveStoredProperties(localProperties);
   
-  // Standardized delete payload for n8n reliability
   await fireWebhook(API_CONFIG.DELETE_PROPERTY, { 
     id, 
     action: 'delete',
