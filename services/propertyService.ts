@@ -85,7 +85,7 @@ const fireWebhook = async (url: string, data: any) => {
     const payload = {
       ...data,
       webhook_id: `WEB-${Date.now()}`,
-      webhook_source: 'imperial_dashboard_v2',
+      webhook_source: 'imperial_dashboard_pro',
       timestamp: new Date().toISOString()
     };
 
@@ -100,10 +100,10 @@ const fireWebhook = async (url: string, data: any) => {
     });
 
     if (!response.ok) {
-      console.error(`Sync Error: ${response.status} ${response.statusText}`);
+      console.error(`Webhook sync failed: ${response.status}`);
     }
   } catch (e) {
-    console.warn('Network sync offline - modifications saved locally.');
+    console.warn('Network sync offline - using local persistence.');
   }
 };
 
@@ -118,7 +118,7 @@ export const fetchProperties = async (): Promise<Property[]> => {
       return localProperties.filter(p => p.active);
     }
   } catch (error) {
-    console.warn('API unavailable, serving from local cache.');
+    console.warn('API sync failed, using cache.');
   }
   return localProperties.filter(p => p.active);
 };
@@ -146,13 +146,14 @@ export const deleteProperty = async (id: string): Promise<boolean> => {
   localProperties = localProperties.filter(p => p.id !== id);
   saveStoredProperties(localProperties);
   
-  // Robust delete payload to ensure n8n can process it
+  // Standardized delete payload for n8n reliability
   await fireWebhook(API_CONFIG.DELETE_PROPERTY, { 
     id, 
     action: 'delete',
     title: target.title,
     city: target.city,
-    delete_verification: true
+    timestamp: new Date().toISOString(),
+    is_deleted: true
   });
   return true;
 };
