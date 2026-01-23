@@ -17,14 +17,13 @@ export const generateUniqueId = (): string => {
 const normalizeProperty = (p: any): Property => {
   const configurations = p.configurations || [
     {
-  id: `CONFIG-${p.id || Date.now()}`,
-  name: 'Standard Unit',
-  size: p.area ?? '',
-  totalUnits: '',
-  unitsSold: '',
-  price: p.price ?? ''
-}
-
+      id: `CONFIG-${p.id || Date.now()}`,
+      name: 'Standard Unit',
+      size: p.area || 0,
+      totalUnits: 0,
+      unitsSold: 0,
+      price: p.price || 0
+    }
   ];
 
   const minPrice = configurations.length > 0 
@@ -38,7 +37,7 @@ const normalizeProperty = (p: any): Property => {
     type: p.type || 'apartment',
     city: p.city || 'Unknown',
     microLocation: p.microLocation || 'Unknown',
-    totalProjectSize: p.totalProjectSize || `${p.area || 0} Sqft`,
+    totalProjectSize: p.totalProjectSize || `0 Sqft`,
     projectStatus: p.projectStatus || (p.status === 'available' ? 'ready' : 'under-construction'),
     developerName: p.developerName || 'Imperial Group',
     reraId: p.reraId || 'NOT-APPLICABLE',
