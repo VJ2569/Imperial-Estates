@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, MapPin, Building, Calendar, Shield, Plus, Minus, LayoutGrid, CheckCircle, Download, FileText, Sparkles, Image as ImageIcon } from 'lucide-react';
+import { X, MapPin, Building, Calendar, Shield, Plus, Minus, LayoutGrid, CheckCircle, Download, FileText, Sparkles, Image as ImageIcon, Map } from 'lucide-react';
 import { Property, Configuration } from '../types';
 import { updateProperty } from '../services/propertyService';
 
@@ -31,7 +31,12 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProp
     await updateProperty(updatedProperty);
   };
 
-  const formatCurrency = (val: number) => `₹${(val / 10000000).toFixed(2)} Cr`;
+  const formatCurrency = (val: number) => {
+    const suffix = property.isRental ? ' / Month' : ' Cr';
+    const divisor = property.isRental ? 100000 : 10000000;
+    const formatted = (val / divisor).toFixed(2);
+    return `₹${formatted}${suffix}`;
+  };
 
   return (
     <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-xl flex items-center justify-center p-4 z-50 animate-in fade-in duration-300">
@@ -42,10 +47,10 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProp
            <button onClick={onClose} className="bg-white/10 hover:bg-white/20 p-3 rounded-full text-white backdrop-blur-md transition-all border border-white/10"><X size={24} /></button>
         </div>
 
-        {/* Scrollable Container - Everything inside scrolls now */}
+        {/* Scrollable Container */}
         <div className="flex-1 overflow-y-auto custom-scrollbar">
           
-          {/* Hero Section - Now part of the scroll flow */}
+          {/* Hero Section */}
           <div className="relative h-[50vh] min-h-[400px] overflow-hidden">
             {property.images && property.images.length > 0 ? (
               <img src={property.images[activeImageIndex]} className="w-full h-full object-cover transition-all duration-700" />
@@ -60,25 +65,11 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProp
                <div className="flex gap-2 mb-4">
                   <span className="bg-blue-600 px-4 py-1.5 rounded-full text-white text-[10px] font-black uppercase tracking-widest">{property.projectStatus.replace('-', ' ')}</span>
                   <span className="bg-white/10 backdrop-blur-md px-4 py-1.5 rounded-full text-white text-[10px] font-black uppercase tracking-widest border border-white/10">{property.type}</span>
+                  {property.isRental && <span className="bg-amber-500 px-4 py-1.5 rounded-full text-white text-[10px] font-black uppercase tracking-widest">Rental Asset</span>}
                </div>
                <div className="flex items-center gap-2 text-blue-400 font-mono text-sm mb-2"><MapPin size={16} /> {property.city} • {property.microLocation}</div>
                <h2 className="text-4xl md:text-5xl font-black text-white tracking-tight">{property.title}</h2>
             </div>
-
-            {/* Image Navigation Bar */}
-            {property.images && property.images.length > 1 && (
-              <div className="absolute top-10 left-10 flex gap-2 p-2 bg-black/40 backdrop-blur-md rounded-2xl z-20">
-                {property.images.map((img, idx) => (
-                  <button 
-                    key={idx} 
-                    onClick={() => setActiveImageIndex(idx)}
-                    className={`w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${activeImageIndex === idx ? 'border-blue-500 scale-110' : 'border-transparent opacity-60 hover:opacity-100'}`}
-                  >
-                    <img src={img} className="w-full h-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
 
           <div className="p-10">
@@ -88,17 +79,17 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProp
                    
                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 bg-slate-50 dark:bg-slate-800/50 p-8 rounded-[32px] border border-slate-100 dark:border-slate-800">
                       <div>
-                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Possession</p>
+                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Handover</p>
                          <p className="font-bold text-slate-800 dark:text-white flex items-center gap-2">{property.timeline}</p>
                       </div>
                       <div>
-                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Phases</p>
+                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Developer</p>
                          <p className="font-bold text-slate-800 dark:text-white flex items-center gap-2">
                             {property.towerCount ? `${property.towerCount} Towers` : property.developerName}
                          </p>
                       </div>
                       <div>
-                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Land Area</p>
+                         <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Total Scale</p>
                          <p className="font-bold text-slate-800 dark:text-white flex items-center gap-2">{property.totalProjectSize}</p>
                       </div>
                       <div>
@@ -107,22 +98,18 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProp
                       </div>
                    </div>
 
-                   <div>
-                      <div className="flex items-center gap-3 mb-6">
-                         <Sparkles size={24} className="text-blue-600" />
-                         <h3 className="text-2xl font-black text-slate-800 dark:text-white">Lifestyle Amenities</h3>
+                   {/* Area & Connectivity Display */}
+                   {property.areaAndConnectivity && (
+                      <div>
+                        <div className="flex items-center gap-3 mb-6">
+                           <Map size={24} className="text-blue-600" />
+                           <h3 className="text-2xl font-black text-slate-800 dark:text-white">Connectivity & Proximity</h3>
+                        </div>
+                        <p className="text-slate-500 dark:text-slate-400 leading-relaxed text-lg whitespace-pre-wrap">
+                           {property.areaAndConnectivity}
+                        </p>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                         {property.amenities?.length > 0 ? property.amenities.map(amenity => (
-                            <div key={amenity} className="flex items-center gap-3 p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
-                               <div className="bg-blue-50 dark:bg-blue-900/30 p-2 rounded-xl text-blue-600"><CheckCircle size={16} /></div>
-                               <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{amenity}</span>
-                            </div>
-                         )) : (
-                            <p className="text-slate-400 text-sm italic col-span-full">Premium lifestyle amenities curated for excellence.</p>
-                         )}
-                      </div>
-                   </div>
+                   )}
 
                    <div>
                       <div className="flex items-center gap-3 mb-6">
@@ -133,10 +120,9 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProp
                          <table className="w-full text-left">
                             <thead className="bg-slate-50 dark:bg-slate-800/50 text-slate-500 dark:text-slate-400 text-[10px] font-black uppercase tracking-widest">
                                <tr>
-                                  <th className="px-8 py-5">Unit Type</th>
-                                  <th className="px-8 py-5">Area</th>
+                                  <th className="px-8 py-5">Unit Detail</th>
                                   <th className="px-8 py-5">Inventory</th>
-                                  <th className="px-8 py-5">Sales Velocity</th>
+                                  <th className="px-8 py-5">Market Velocity</th>
                                </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
@@ -146,10 +132,14 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProp
                                     <tr key={config.id} className="group">
                                        <td className="px-8 py-6">
                                           <div className="font-bold text-slate-900 dark:text-white">{config.name}</div>
-                                          <div className="text-emerald-500 font-bold text-xs">{formatCurrency(config.price)}</div>
-                                       </td>
-                                       <td className="px-8 py-6">
-                                          <span className="bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 px-3 py-1 rounded-lg text-xs font-black">{config.size} Sqft</span>
+                                          <div className="flex items-center gap-3 mt-1">
+                                            <div className="text-emerald-500 font-bold text-sm">{formatCurrency(config.price)}</div>
+                                            <span className="text-slate-400 text-xs">|</span>
+                                            <span className="text-blue-600 dark:text-blue-400 text-xs font-black">{config.size} Sqft</span>
+                                          </div>
+                                          {config.description && (
+                                            <p className="text-[11px] text-slate-400 italic mt-2 leading-tight max-w-sm">{config.description}</p>
+                                          )}
                                        </td>
                                        <td className="px-8 py-6 font-bold text-slate-600 dark:text-slate-400">{config.totalUnits} Units</td>
                                        <td className="px-8 py-6">
@@ -163,12 +153,6 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProp
                                                    <div className="h-full bg-emerald-500 transition-all duration-500" style={{ width: `${progress}%` }} />
                                                 </div>
                                              </div>
-                                             {!readOnly && (
-                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                   <button onClick={() => handleUnitSoldUpdate(config.id, false)} className="p-1.5 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-rose-500 hover:text-white"><Minus size={14} /></button>
-                                                   <button onClick={() => handleUnitSoldUpdate(config.id, true)} className="p-1.5 bg-slate-900 dark:bg-slate-700 text-white rounded-lg hover:bg-emerald-500"><Plus size={14} /></button>
-                                                </div>
-                                             )}
                                           </div>
                                        </td>
                                     </tr>
@@ -199,27 +183,7 @@ const PropertyDetails: React.FC<PropertyDetailsProps> = ({ property: initialProp
                          </div>
                          <div className="flex items-start gap-4">
                             <div className="bg-white/10 p-2 rounded-xl"><Building size={20} /></div>
-                            <div><p className="text-xs font-bold text-slate-400 mb-0.5">Development</p><p className="text-sm capitalize">{property.type}</p></div>
-                         </div>
-                      </div>
-
-                      <div className="mb-10">
-                         <p className="text-[10px] font-black text-amber-400 uppercase tracking-widest mb-4">Marketing Assets</p>
-                         <div className="space-y-3">
-                            {property.documents?.map(doc => (
-                               <a 
-                                  key={doc.type} 
-                                  href={doc.url} 
-                                  download={`${property.title.split('–')[0]}_${doc.label}`}
-                                  className="w-full bg-white/5 hover:bg-white/10 p-4 rounded-2xl flex items-center justify-between group transition-all"
-                               >
-                                  <div className="flex items-center gap-3">
-                                     <div className="bg-white/10 p-2 rounded-lg text-white group-hover:scale-110 transition-transform"><FileText size={16} /></div>
-                                     <span className="text-xs font-bold">{doc.label}</span>
-                                  </div>
-                                  <Download size={14} className="text-slate-500 group-hover:text-white" />
-                               </a>
-                            ))}
+                            <div><p className="text-xs font-bold text-slate-400 mb-0.5">Classification</p><p className="text-sm capitalize">{property.type}</p></div>
                          </div>
                       </div>
 
