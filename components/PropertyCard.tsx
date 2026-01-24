@@ -22,7 +22,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
   readOnly = false,
 }) => {
   const formatPrice = (price: number) => {
-    return `₹${(price / 10000000).toFixed(2)} Cr`;
+    const val = `₹${(price / 10000000).toFixed(2)} Cr`;
+    return property.isRental ? `₹${(price / 100000).toFixed(2)} L` : val;
   };
 
   const getStatusBadge = (status: string) => {
@@ -108,10 +109,11 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
 
         <div className="flex items-center justify-between mb-6 py-6 border-y border-slate-50 dark:border-slate-800/50">
            <div>
-              <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">Asset Value From</p>
+              <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">{property.isRental ? 'Rent Starts From' : 'Asset Value From'}</p>
               <div className="flex items-center text-3xl font-black text-slate-900 dark:text-white tracking-tighter">
                 <IndianRupee size={20} className="text-emerald-500 mr-1" />
                 <span>{formatPrice(property.price)}</span>
+                {property.isRental && <span className="text-xs font-black text-slate-400 ml-1">pm</span>}
               </div>
            </div>
            <div className="text-right">
