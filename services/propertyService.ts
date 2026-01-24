@@ -1,4 +1,3 @@
-
 import { API_CONFIG } from '../constants';
 import { Property, Configuration } from '../types';
 
