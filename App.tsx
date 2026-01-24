@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { Check, Menu } from 'lucide-react';
+import { Check, Menu, X as XIcon } from 'lucide-react';
 import Sidebar from './components/Sidebar';
 import PropertyManager from './components/PropertyManager';
 import CallHistory from './components/CallHistory';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import Settings from './components/Settings';
+import VoiceAssistant from './components/VoiceAssistant';
 
 // Layout Component that handles Sidebar and common UI
 const DashboardLayout = ({ isClientView }: { isClientView: boolean }) => {
@@ -28,7 +29,6 @@ const DashboardLayout = ({ isClientView }: { isClientView: boolean }) => {
   }, []);
 
   const handleShare = () => {
-    // Generate the clean client URL
     const url = `${window.location.origin}/client`;
     navigator.clipboard.writeText(url);
     setShowShareToast(true);
@@ -36,7 +36,6 @@ const DashboardLayout = ({ isClientView }: { isClientView: boolean }) => {
   };
 
   const renderContent = () => {
-    // Enforce view mode
     if (isClientView) {
       return <PropertyManager readOnly={true} />;
     }
@@ -85,27 +84,33 @@ const DashboardLayout = ({ isClientView }: { isClientView: boolean }) => {
       
       <main className="flex-1 overflow-y-auto custom-scrollbar relative w-full">
         {showShareToast && (
-            <div className="absolute top-6 right-6 left-6 md:left-auto z-50 bg-slate-800 text-white text-xs px-3 py-2 rounded-lg shadow-xl flex items-center justify-center md:justify-start gap-2 animate-in slide-in-from-top-2 fade-in">
-              <Check size={14} className="text-emerald-400" />
-              Link copied to clipboard!
+            <div className="fixed top-6 left-1/2 -translate-x-1/2 md:left-auto md:right-6 md:translate-x-0 z-[100] bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-3 animate-in fade-in slide-in-from-top-4">
+               <Check size={20} className="shrink-0" />
+               <div className="flex-1">
+                  <p className="font-black text-xs uppercase tracking-widest">Portal Sync</p>
+                  <p className="text-sm font-bold opacity-90">Client URL copied to clipboard</p>
+               </div>
+               <button onClick={() => setShowShareToast(false)} className="ml-2 hover:bg-white/10 p-1 rounded-lg transition-colors">
+                  <XIcon size={16} />
+               </button>
             </div>
         )}
-
+        
         {renderContent()}
+        <VoiceAssistant />
       </main>
     </div>
   );
 };
 
-function App() {
+const App = () => {
   return (
     <Routes>
-      <Route path="/aegis" element={<DashboardLayout isClientView={false} />} />
+      <Route path="/admin" element={<DashboardLayout isClientView={false} />} />
       <Route path="/client" element={<DashboardLayout isClientView={true} />} />
-      {/* Default redirect to aegis view  */}
-      <Route path="*" element={<Navigate to="/aegis" replace />} />
+      <Route path="/" element={<Navigate to="/admin" replace />} />
     </Routes>
   );
-}
+};
 
 export default App;
