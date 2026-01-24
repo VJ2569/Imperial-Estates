@@ -7,6 +7,7 @@ import CallHistory from './components/CallHistory';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import Settings from './components/Settings';
 import VoiceAssistant from './components/VoiceAssistant';
+import AdminGuard from './components/AdminGuard';
 
 // Layout Component that handles Sidebar and common UI
 const DashboardLayout = ({ isClientView }: { isClientView: boolean }) => {
@@ -106,9 +107,16 @@ const DashboardLayout = ({ isClientView }: { isClientView: boolean }) => {
 const App = () => {
   return (
     <Routes>
-      <Route path="/aegisa" element={<DashboardLayout isClientView={false} />} />
+      <Route 
+        path="/aegissa" 
+        element={
+          <AdminGuard>
+            <DashboardLayout isClientView={false} />
+          </AdminGuard>
+        } 
+      />
       <Route path="/client" element={<DashboardLayout isClientView={true} />} />
-      <Route path="/" element={<Navigate to="/aegisa" replace />} />
+      <Route path="/" element={<Navigate to="/aegissa" replace />} />
     </Routes>
   );
 };
