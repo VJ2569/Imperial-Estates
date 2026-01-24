@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Key, User, Shield, CheckCircle2, Plus, Trash2, HelpCircle, Moon, Sun } from 'lucide-react';
+import { Save, Key, User, Shield, CheckCircle2, Plus, Trash2, HelpCircle, Moon, Sun, Lock } from 'lucide-react';
 import { AGENT_CONFIG } from '../constants';
 import { Assistant } from '../types';
 
 const Settings: React.FC = () => {
-  const [activeSection, setActiveSection] = useState<'general' | 'integrations'>('integrations');
+  const [activeSection, setActiveSection] = useState<'general' | 'integrations' | 'security'>('integrations');
   const [showSuccess, setShowSuccess] = useState(false);
 
   const [agentConfig, setAgentConfig] = useState({
@@ -23,9 +23,13 @@ const Settings: React.FC = () => {
     appearance: 'light' // 'light' | 'dark'
   });
 
+  const [securityPin, setSecurityPin] = useState('');
+
   useEffect(() => {
     const storedPublicKey = localStorage.getItem('agent_public_key') || '';
     const storedPrivateKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
+    const storedPin = localStorage.getItem('aegisa_security_pin') || '12345';
+    setSecurityPin(storedPin);
     
     let loadedAssistants: Assistant[] = [];
     const storedIdsJson = localStorage.getItem('agent_ids');
@@ -85,6 +89,10 @@ const Settings: React.FC = () => {
         localStorage.removeItem('agent_id');
     }
 
+    if (securityPin.length === 5 && /^\d+$/.test(securityPin)) {
+      localStorage.setItem('aegisa_security_pin', securityPin);
+    }
+
     localStorage.setItem('app_general_config', JSON.stringify(generalConfig));
 
     setShowSuccess(true);
@@ -142,6 +150,17 @@ const Settings: React.FC = () => {
           >
             <Key size={18} />
             Integrations (Agent API)
+          </button>
+          <button
+            onClick={() => setActiveSection('security')}
+            className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-medium transition-colors ${
+              activeSection === 'security' 
+                ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-100 dark:border-slate-700' 
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Shield size={18} />
+            Aegisa Security
           </button>
           <button
             onClick={() => setActiveSection('general')}
@@ -241,6 +260,49 @@ const Settings: React.FC = () => {
                       <Shield size={10} />
                       Stored locally. Used to fetch call logs and analytics.
                     </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeSection === 'security' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-slate-800">
+                   <div className="p-2 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">
+                      <Lock size={20} />
+                   </div>
+                   <h3 className="font-bold text-gray-900 dark:text-white">Admin Security Access</h3>
+                </div>
+                
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">5-Digit Admin PIN</label>
+                    <input 
+                      type="password" 
+                      maxLength={5}
+                      value={securityPin}
+                      onChange={(e) => {
+                        const val = e.target.value.replace(/\D/g, '');
+                        if (val.length <= 5) setSecurityPin(val);
+                      }}
+                      className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xl font-mono tracking-[1em] text-center"
+                      placeholder="*****"
+                    />
+                    <p className="text-xs text-slate-500 mt-3 flex items-start gap-2">
+                       <HelpCircle size={14} className="shrink-0 mt-0.5" />
+                       This PIN is required every time the admin panel is accessed. Ensure it is kept confidential. Only numeric digits are permitted.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
+                     <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white mb-2 flex items-center gap-2">
+                        <Shield size={14} className="text-blue-500" /> Security Protocol
+                     </h4>
+                     <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Aegisa Protection ensures that all data remains client-side encrypted and inaccessible to unauthorized crawlers or individuals bypassing URLs.
+                     </p>
                   </div>
                 </div>
               </div>
