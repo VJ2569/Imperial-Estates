@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, Plus, Trash2, Building, Sparkles, LayoutGrid, Image as ImageIcon, Globe, Minus, RefreshCw } from 'lucide-react';
+import { X, Save, Plus, Trash2, Building, Sparkles, LayoutGrid, Globe, Minus, RefreshCw, Map } from 'lucide-react';
 import { Property, PropertyFormData, Configuration, ProjectStatus, ProjectType } from '../types';
 import { generateUniqueId } from '../services/propertyService';
 
@@ -26,11 +26,13 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
     reraId: '',
     timeline: '',
     active: true,
-    images: initialData?.images || [],
+    images: [],
+    isRental: initialData?.isRental || false,
     configurations: initialData?.configurations || [],
     amenities: initialData?.amenities || [],
     documents: [],
     description: '',
+    areaAndConnectivity: '',
     towerCount: undefined,
     ...initialData
   });
@@ -59,9 +61,12 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
 
   const toIndianWords = (num: number | undefined): string => {
     if (!num || isNaN(num) || num === 0) return '';
-    if (num >= 10000000) return `${(num / 10000000).toFixed(2)} Crore`;
-    if (num >= 100000) return `${(num / 100000).toFixed(2)} Lakh`;
-    return num.toLocaleString('en-IN');
+    const suffix = formData.isRental ? ' / Month' : '';
+    let result = '';
+    if (num >= 10000000) result = `${(num / 10000000).toFixed(2)} Crore`;
+    else if (num >= 100000) result = `${(num / 100000).toFixed(2)} Lakh`;
+    else result = num.toLocaleString('en-IN');
+    return result + suffix;
   };
 
   const addConfiguration = () => {
@@ -71,7 +76,8 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
       size: 0,
       totalUnits: 0,
       unitsSold: 0,
-      price: 0
+      price: 0,
+      description: ''
     };
     setFormData(prev => ({
       ...prev,
@@ -203,17 +209,15 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                     <label className={subLabelClass}>Tower Count</label>
                     <input type="number" value={formData.towerCount ?? ''} onChange={e => setFormData({...formData, towerCount: e.target.value ? Number(e.target.value) : undefined})} placeholder="Total Towers" className={inputClass} />
                  </div>
-                 <div>
-                    <label className={subLabelClass}>Active Status</label>
-                    <div className="flex items-center h-[52px]">
-                       <button 
-                         type="button"
-                         onClick={() => setFormData({...formData, active: !formData.active})}
-                         className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${formData.active ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500 dark:bg-slate-700'}`}
-                       >
-                         {formData.active ? 'Live on Portal' : 'Draft / Offline'}
-                       </button>
-                    </div>
+                 <div className="flex flex-col gap-2">
+                    <label className={subLabelClass}>Rental Mode</label>
+                    <button 
+                      type="button"
+                      onClick={() => setFormData({...formData, isRental: !formData.isRental})}
+                      className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${formData.isRental ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500 dark:bg-slate-700'}`}
+                    >
+                      {formData.isRental ? 'Rental Active' : 'Sale Mode'}
+                    </button>
                  </div>
               </div>
            </section>
@@ -238,8 +242,8 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                         <input type="text" value={config.name} onChange={e => updateConfig(index, 'name', e.target.value)} placeholder="e.g. 4.5 BHK Grande" className={inputClass} />
                       </div>
                       <div className="md:col-span-3">
-                        <label className={subLabelClass}>Base Pricing (₹)</label>
-                        <input type="number" value={config.price || ''} onChange={e => updateConfig(index, 'price', e.target.value ? Number(e.target.value) : undefined)} className={inputClass} placeholder="Investment From" />
+                        <label className={subLabelClass}>{formData.isRental ? 'Monthly Rent (₹)' : 'Base Price (₹)'}</label>
+                        <input type="number" value={config.price || ''} onChange={e => updateConfig(index, 'price', e.target.value ? Number(e.target.value) : undefined)} className={inputClass} placeholder={formData.isRental ? "Rent Amount" : "Investment From"} />
                         <div className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 mt-2 px-1">{toIndianWords(config.price)}</div>
                       </div>
                       <div className="md:col-span-2">
@@ -270,45 +274,43 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                            <Trash2 size={24} />
                         </button>
                       </div>
+
+                      <div className="md:col-span-12">
+                         <label className={subLabelClass}>Typology Short Description</label>
+                         <input 
+                           type="text" 
+                           value={config.description || ''} 
+                           onChange={e => updateConfig(index, 'description', e.target.value)} 
+                           placeholder="e.g. Corner unit with unobstructed park views and private deck..." 
+                           className={inputClass} 
+                         />
+                      </div>
                     </div>
                   </div>
                 ))}
               </div>
            </section>
 
-           {/* Section 4: Media Assets (URL Based Only) */}
+           {/* Section 4: Area & Connectivity */}
            <section>
-              <div className="flex items-center gap-3 mb-8 text-purple-600 dark:text-purple-400">
-                 <ImageIcon size={24} className="shrink-0" />
-                 <h3 className={labelHeaderClass}>Project Media</h3>
+              <div className="flex items-center gap-3 mb-8 text-indigo-600 dark:text-indigo-400">
+                 <Map size={24} className="shrink-0" />
+                 <h3 className={labelHeaderClass}>Area & Connectivity</h3>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                 <div>
-                    <label className={subLabelClass}>Primary Asset Image URL</label>
-                    <input 
-                      type="text" 
-                      value={formData.images?.[0] || ''} 
-                      onChange={e => setFormData({...formData, images: [e.target.value, ...(formData.images?.slice(1) || [])]})}
-                      placeholder="https://images.unsplash.com/..."
-                      className={inputClass}
-                    />
-                    {formData.images?.[0] && (
-                       <div className="mt-4 aspect-video rounded-3xl overflow-hidden border border-slate-200 shadow-sm bg-slate-100 flex items-center justify-center">
-                          <img src={formData.images[0]} className="w-full h-full object-cover" onError={(e) => e.currentTarget.src = 'https://via.placeholder.com/800x450?text=Invalid+Image+URL'} />
-                       </div>
-                    )}
-                 </div>
-                 <div className="space-y-4">
-                    <p className="text-[11px] font-black text-slate-500 uppercase italic">Imperial Dashboard v2.5: Image and Document uploading is currently disabled by administrator policy. Please provide public hosting URLs for all project assets.</p>
-                 </div>
-              </div>
+              <textarea 
+                 value={formData.areaAndConnectivity} 
+                 onChange={e => setFormData({...formData, areaAndConnectivity: e.target.value})}
+                 rows={4}
+                 placeholder="Outline proximity to key transit hubs, commercial centers, and essential infrastructure..."
+                 className={inputClass + " resize-none dark:text-slate-100 font-bold leading-relaxed"}
+              />
            </section>
 
            {/* Section 5: Narrative & Lifestyle */}
            <section className="grid grid-cols-1 md:grid-cols-2 gap-10">
               <div>
                 <div className="flex items-center gap-3 mb-6">
-                   <ImageIcon size={24} className="text-purple-600" />
+                   <Building size={24} className="text-purple-600" />
                    <h3 className={labelHeaderClass}>Project Narrative</h3>
                 </div>
                 <textarea 
