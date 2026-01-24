@@ -9,7 +9,7 @@ export interface Configuration {
   totalUnits: number;
   unitsSold: number;
   price: number; // Base price
-  description?: string; // New: Short description for config
+  description?: string; // Short description for each typology
 }
 
 export interface ProjectDocument {
@@ -30,7 +30,7 @@ export interface Property {
   reraId: string;
   timeline: string;
   active: boolean;
-  images: string[];
+  images: string[]; // Kept in interface but hidden in UI
   configurations: Configuration[];
   
   towerCount?: number;
@@ -38,11 +38,11 @@ export interface Property {
   documents: ProjectDocument[];
   description: string;
   areaAndConnectivity?: string; // New: Connectivity details
+  isRental?: boolean; // New: Rental status
 
   // Legacy fields
   features: string;
   status: 'available' | 'sold' | 'rented';
-  isRental?: boolean;
   availableFrom: string;
   location: string;
   price: number;
