@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X, Save, Plus, Trash2, Building, Sparkles, LayoutGrid, Globe, Minus, RefreshCw, Map } from 'lucide-react';
 import { Property, PropertyFormData, Configuration, ProjectStatus, ProjectType } from '../types';
@@ -26,7 +27,6 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
     reraId: '',
     timeline: '',
     active: true,
-    images: [],
     isRental: initialData?.isRental || false,
     configurations: initialData?.configurations || [],
     amenities: initialData?.amenities || [],
@@ -34,6 +34,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
     description: '',
     areaAndConnectivity: '',
     towerCount: undefined,
+    images: [], // Images removed from form
     ...initialData
   });
 
@@ -77,7 +78,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
       totalUnits: 0,
       unitsSold: 0,
       price: 0,
-      description: ''
+      description: '' // Added description for configuration
     };
     setFormData(prev => ({
       ...prev,
@@ -214,9 +215,9 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                     <button 
                       type="button"
                       onClick={() => setFormData({...formData, isRental: !formData.isRental})}
-                      className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${formData.isRental ? 'bg-amber-500 text-white' : 'bg-slate-200 text-slate-500 dark:bg-slate-700'}`}
+                      className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all ${formData.isRental ? 'bg-amber-500 text-white shadow-lg' : 'bg-slate-200 text-slate-500 dark:bg-slate-700'}`}
                     >
-                      {formData.isRental ? 'Rental Active' : 'Sale Mode'}
+                      {formData.isRental ? 'Rental Active (Monthly)' : 'Sale Mode (Total Price)'}
                     </button>
                  </div>
               </div>
@@ -275,13 +276,14 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                         </button>
                       </div>
 
+                      {/* NEW: Short description for typology */}
                       <div className="md:col-span-12">
                          <label className={subLabelClass}>Typology Short Description</label>
                          <input 
                            type="text" 
                            value={config.description || ''} 
                            onChange={e => updateConfig(index, 'description', e.target.value)} 
-                           placeholder="e.g. Corner unit with unobstructed park views and private deck..." 
+                           placeholder="e.g. Corner unit with park views and private deck..." 
                            className={inputClass} 
                          />
                       </div>
@@ -291,7 +293,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
               </div>
            </section>
 
-           {/* Section 4: Area & Connectivity */}
+           {/* Section 4: Area & Connectivity (NEW) */}
            <section>
               <div className="flex items-center gap-3 mb-8 text-indigo-600 dark:text-indigo-400">
                  <Map size={24} className="shrink-0" />
@@ -301,7 +303,7 @@ const PropertyForm: React.FC<PropertyFormProps> = ({ initialData, onSave, onCanc
                  value={formData.areaAndConnectivity} 
                  onChange={e => setFormData({...formData, areaAndConnectivity: e.target.value})}
                  rows={4}
-                 placeholder="Outline proximity to key transit hubs, commercial centers, and essential infrastructure..."
+                 placeholder="Outline transit hubs, commercial centers, schools, and hospitals in the vicinity..."
                  className={inputClass + " resize-none dark:text-slate-100 font-bold leading-relaxed"}
               />
            </section>
