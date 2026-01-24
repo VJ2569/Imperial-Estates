@@ -183,13 +183,26 @@ const CallHistory: React.FC = () => {
 
       {selectedTranscript && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50" onClick={() => setSelectedTranscript(null)}>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full p-6 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-2xl w-full p-6 shadow-2xl animate-in zoom-in-95 duration-200" onClick={e => e.stopPropagation()}>
              <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100 dark:border-slate-800">
-                <h3 className="font-bold text-lg">Call Transcript</h3>
-                <button onClick={() => setSelectedTranscript(null)}><X size={24} /></button>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white">Call Transcript</h3>
+                <button 
+                  onClick={() => setSelectedTranscript(null)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500 dark:text-slate-400 transition-colors"
+                >
+                  <X size={24} />
+                </button>
              </div>
-             <div className="max-h-[60vh] overflow-y-auto p-4 bg-gray-50 dark:bg-slate-800 rounded-xl text-sm whitespace-pre-wrap font-mono">
+             <div className="max-h-[60vh] overflow-y-auto p-5 bg-slate-50 dark:bg-slate-950/50 rounded-xl text-sm whitespace-pre-wrap font-mono text-slate-800 dark:text-slate-100 border border-slate-100 dark:border-slate-800 leading-relaxed">
                 {selectedTranscript}
+             </div>
+             <div className="mt-6 flex justify-end">
+                <button 
+                  onClick={() => setSelectedTranscript(null)}
+                  className="px-6 py-2.5 bg-slate-900 dark:bg-slate-800 text-white dark:text-slate-200 rounded-xl font-bold text-sm hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors"
+                >
+                  Close
+                </button>
              </div>
           </div>
         </div>
