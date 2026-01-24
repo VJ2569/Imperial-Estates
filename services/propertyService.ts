@@ -22,7 +22,8 @@ const normalizeProperty = (p: any): Property => {
       size: p.area || 0,
       totalUnits: 0,
       unitsSold: 0,
-      price: p.price || 0
+      price: p.price || 0,
+      description: ''
     }
   ];
 
@@ -48,6 +49,7 @@ const normalizeProperty = (p: any): Property => {
     amenities: p.amenities || [],
     documents: p.documents || [],
     description: p.description || '',
+    areaAndConnectivity: p.areaAndConnectivity || '',
     towerCount: p.towerCount || undefined,
     price: minPrice,
     location: p.location || `${p.microLocation || 'Unknown'}, ${p.city || 'Unknown'}`,
