@@ -8,7 +8,8 @@ export interface Configuration {
   size: number; // Sqft
   totalUnits: number;
   unitsSold: number;
-  price: number; // Base price for this specific config
+  price: number; // Base price
+  description?: string; // New: Short description for config
 }
 
 export interface ProjectDocument {
@@ -18,12 +19,12 @@ export interface ProjectDocument {
 }
 
 export interface Property { 
-  id: string; // IMP-<CITYCODE>-<PROJECTCODE>
-  title: string; // <Project Name> – <Micro-location>, <City>
+  id: string; 
+  title: string; 
   type: ProjectType;
   city: string;
   microLocation: string;
-  totalProjectSize: string; // e.g., "5 Acres"
+  totalProjectSize: string; 
   projectStatus: ProjectStatus;
   developerName: string;
   reraId: string;
@@ -32,13 +33,13 @@ export interface Property {
   images: string[];
   configurations: Configuration[];
   
-  // New Fields
   towerCount?: number;
   amenities: string[];
   documents: ProjectDocument[];
   description: string;
+  areaAndConnectivity?: string; // New: Connectivity details
 
-  // Legacy/Additional fields for backward compatibility
+  // Legacy fields
   features: string;
   status: 'available' | 'sold' | 'rented';
   isRental?: boolean;
