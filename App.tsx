@@ -106,9 +106,9 @@ const DashboardLayout = ({ isClientView }: { isClientView: boolean }) => {
 const App = () => {
   return (
     <Routes>
-      <Route path="/admin" element={<DashboardLayout isClientView={false} />} />
+      <Route path="/aegisa" element={<DashboardLayout isClientView={false} />} />
       <Route path="/client" element={<DashboardLayout isClientView={true} />} />
-      <Route path="/" element={<Navigate to="/admin" replace />} />
+      <Route path="/" element={<Navigate to="/aegisa" replace />} />
     </Routes>
   );
 };
