@@ -24,12 +24,16 @@ const Settings: React.FC = () => {
   });
 
   const [securityPin, setSecurityPin] = useState('');
+  const [securityEnabled, setSecurityEnabled] = useState(false);
 
   useEffect(() => {
     const storedPublicKey = localStorage.getItem('agent_public_key') || '';
     const storedPrivateKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
     const storedPin = localStorage.getItem('aegisa_security_pin') || '12345';
+    const storedSecurityEnabled = localStorage.getItem('aegisa_security_enabled') === 'true';
+    
     setSecurityPin(storedPin);
+    setSecurityEnabled(storedSecurityEnabled);
     
     let loadedAssistants: Assistant[] = [];
     const storedIdsJson = localStorage.getItem('agent_ids');
@@ -92,7 +96,8 @@ const Settings: React.FC = () => {
     if (securityPin.length === 5 && /^\d+$/.test(securityPin)) {
       localStorage.setItem('aegisa_security_pin', securityPin);
     }
-
+    
+    localStorage.setItem('aegisa_security_enabled', securityEnabled.toString());
     localStorage.setItem('app_general_config', JSON.stringify(generalConfig));
 
     setShowSuccess(true);
@@ -277,24 +282,40 @@ const Settings: React.FC = () => {
                 </div>
                 
                 <div className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">5-Digit Admin PIN</label>
-                    <input 
-                      type="password" 
-                      maxLength={5}
-                      value={securityPin}
-                      onChange={(e) => {
-                        const val = e.target.value.replace(/\D/g, '');
-                        if (val.length <= 5) setSecurityPin(val);
-                      }}
-                      className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xl font-mono tracking-[1em] text-center"
-                      placeholder="*****"
-                    />
-                    <p className="text-xs text-slate-500 mt-3 flex items-start gap-2">
-                       <HelpCircle size={14} className="shrink-0 mt-0.5" />
-                       This PIN is required every time the admin panel is accessed. Ensure it is kept confidential. Only numeric digits are permitted.
-                    </p>
+                  {/* Enable/Disable Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-white">PIN Protection</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Require a PIN to access the admin panel</p>
+                    </div>
+                    <button 
+                      onClick={() => setSecurityEnabled(!securityEnabled)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900 ${securityEnabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${securityEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
                   </div>
+
+                  {securityEnabled && (
+                    <div className="animate-in fade-in slide-in-from-top-2 duration-300">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">5-Digit Admin PIN</label>
+                      <input 
+                        type="password" 
+                        maxLength={5}
+                        value={securityPin}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '');
+                          if (val.length <= 5) setSecurityPin(val);
+                        }}
+                        className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xl font-mono tracking-[1em] text-center"
+                        placeholder="*****"
+                      />
+                      <p className="text-xs text-slate-500 mt-3 flex items-start gap-2">
+                        <HelpCircle size={14} className="shrink-0 mt-0.5" />
+                        This PIN is required every time the admin panel is accessed. Ensure it is kept confidential. Only numeric digits are permitted.
+                      </p>
+                    </div>
+                  )}
 
                   <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
                      <h4 className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white mb-2 flex items-center gap-2">
