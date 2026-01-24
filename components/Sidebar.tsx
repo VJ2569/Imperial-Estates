@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Building2, PhoneIncoming, BarChart3, Settings, ChevronLeft, Menu, X } from 'lucide-react';
+import { Building2, PhoneIncoming, BarChart3, Settings, ChevronLeft, Menu, X, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 interface SidebarProps {
   activeTab: 'properties' | 'receptionist' | 'analytics' | 'settings';
@@ -21,6 +22,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   onMobileClose
 }) => {
   const [generalConfig, setGeneralConfig] = useState({ companyName: 'Imperial' });
+  const navigate = useNavigate();
 
   useEffect(() => {
     const stored = localStorage.getItem('app_general_config');
@@ -28,6 +30,11 @@ const Sidebar: React.FC<SidebarProps> = ({
       setGeneralConfig(JSON.parse(stored));
     }
   }, [activeTab]);
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('aegisa_admin_auth');
+    window.location.reload();
+  };
 
   const menuItems = [
     { id: 'properties', label: 'Properties', icon: Building2 },
@@ -151,6 +158,21 @@ const Sidebar: React.FC<SidebarProps> = ({
               </button>
             );
           })}
+
+          {!isClientView && (
+            <button
+              onClick={handleLogout}
+              className={`w-full flex items-center ${isCollapsed ? 'md:justify-center md:px-0' : 'justify-start px-4'} py-3 rounded-xl transition-all duration-200 font-medium text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 relative group`}
+            >
+              <LogOut size={20} className="shrink-0" />
+              {(!isCollapsed || isMobileOpen) && <span className="ml-3">Logout</span>}
+              {isCollapsed && (
+                <div className="hidden md:block absolute left-16 bg-rose-900 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50 border border-rose-800 shadow-xl">
+                  Logout
+                </div>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </>
