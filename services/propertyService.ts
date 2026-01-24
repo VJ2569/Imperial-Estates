@@ -1,160 +1,62 @@
-import { API_CONFIG } from '../constants';
-import { Property, Configuration } from '../types';
+import { AGENT_CONFIG } from '../constants';
+import { RetellCall } from '../types';
 
-const STORAGE_KEY = 'imperial_estates_db';
+const STORAGE_KEY = 'imperial_agent_calls';
 
-/**
- * Generates a truly unique, professional asset ID.
- * Format: IMP-XXXX-XXXX
- */
-export const generateUniqueId = (): string => {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Safe alphanumeric set
-  const part1 = Array.from({ length: 4 }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
-  const part2 = Array.from({ length: 4 }, () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
-  return `IMP-${part1}-${part2}`;
-};
-
-const normalizeProperty = (p: any): Property => {
-  const configurations = p.configurations || [
-    {
-      id: `CONFIG-${p.id || Date.now()}`,
-      name: 'Standard Unit',
-      size: p.area || 0,
-      totalUnits: 0,
-      unitsSold: 0,
-      price: p.price || 0,
-      description: ''
-    }
-  ];
-
-  const minPrice = configurations.length > 0 
-    ? Math.min(...configurations.map((c: Configuration) => c.price || 0))
-    : (p.price || 0);
-
-  return {
-    ...p,
-    id: p.id || generateUniqueId(),
-    title: p.title || 'Untitled Project',
-    type: p.type || 'apartment',
-    city: p.city || 'Unknown',
-    microLocation: p.microLocation || 'Unknown',
-    totalProjectSize: p.totalProjectSize || `0 Sqft`,
-    projectStatus: p.projectStatus || (p.status === 'available' ? 'ready' : 'under-construction'),
-    developerName: p.developerName || 'Imperial Group',
-    reraId: p.reraId || 'NOT-APPLICABLE',
-    timeline: p.timeline || p.availableFrom || 'TBD',
-    active: p.active !== undefined ? p.active : true,
-    images: p.images || [],
-    configurations: configurations,
-    amenities: p.amenities || [],
-    documents: p.documents || [],
-    description: p.description || '',
-    areaAndConnectivity: p.areaAndConnectivity || '',
-    towerCount: p.towerCount || undefined,
-    price: minPrice,
-    location: p.location || `${p.microLocation || 'Unknown'}, ${p.city || 'Unknown'}`,
-    area: p.area || 0,
-    status: p.status || 'available',
-    isRental: p.isRental || false
-  };
-};
-
-const loadStoredProperties = (): Property[] | null => {
+const loadStoredCalls = (): RetellCall[] => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    if (!stored) return null;
-    const parsed = JSON.parse(stored);
-    return Array.isArray(parsed) ? parsed.map(normalizeProperty) : null;
+    return stored ? JSON.parse(stored) : [];
   } catch (error) {
-    return null;
+    return [];
   }
 };
 
-const saveStoredProperties = (properties: Property[]) => {
+const saveStoredCalls = (calls: RetellCall[]) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(properties));
-  } catch (error) {}
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(calls));
+  } catch (error) {
+    console.warn('Failed to save agent calls locally:', error);
+  }
 };
 
-let localProperties: Property[] = loadStoredProperties() || [];
+let localCalls: RetellCall[] = loadStoredCalls();
 
-export const getStoredProperties = (): Property[] => {
-  return localProperties.filter(p => p.active);
+export const getStoredRetellCalls = (): RetellCall[] => {
+  return localCalls;
 };
 
-const fireWebhook = async (url: string, data: any) => {
-  try {
-    const payload = {
-      ...data,
-      webhook_id: `WEB-${Date.now()}`,
-      webhook_source: 'imperial_dashboard_pro',
-      timestamp: new Date().toISOString()
-    };
+export const fetchRetellCalls = async (): Promise<RetellCall[]> => {
+  const apiKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
 
-    const response = await fetch(url, {
-      method: 'POST',
+  if (!apiKey || apiKey === 'YOUR_AGENT_API_KEY') {
+    console.warn("Agent API Key is missing.");
+    return [];
+  }
+
+  try {
+    // Using V2 list-calls endpoint
+    const response = await fetch('https://api.retellai.com/v2/list-calls?limit=50', {
+      method: 'GET',
       headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
-        'Cache-Control': 'no-cache'
-      },
-      body: JSON.stringify(payload)
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
     });
 
     if (!response.ok) {
-      console.error(`Webhook sync failed: ${response.status}`);
+       return localCalls;
     }
-  } catch (e) {
-    console.warn('Network sync offline - using local persistence.');
-  }
-};
 
-export const fetchProperties = async (): Promise<Property[]> => {
-  try {
-    const response = await fetch(`${API_CONFIG.GET_ALL}?action=get_all`);
-    if (response.ok) {
-      const data = await response.json();
-      const fetched = Array.isArray(data) ? data : (data.properties || []);
-      localProperties = fetched.map(normalizeProperty);
-      saveStoredProperties(localProperties);
-      return localProperties.filter(p => p.active);
-    }
+    const data = await response.json();
+    const calls = Array.isArray(data) ? data : (data.calls || []);
+    
+    localCalls = calls;
+    saveStoredCalls(localCalls);
+    
+    return localCalls;
   } catch (error) {
-    console.warn('API sync failed, using cache.');
+    console.error("Failed to fetch agent calls:", error);
+    return localCalls;
   }
-  return localProperties.filter(p => p.active);
-};
-
-export const createProperty = async (property: Property): Promise<boolean> => {
-  const normalized = normalizeProperty(property);
-  localProperties = [...localProperties, normalized];
-  saveStoredProperties(localProperties);
-  await fireWebhook(API_CONFIG.ADD_PROPERTY, { ...normalized, action: 'add' });
-  return true;
-};
-
-export const updateProperty = async (property: Property): Promise<boolean> => {
-  const normalized = normalizeProperty(property);
-  localProperties = localProperties.map(p => p.id === normalized.id ? normalized : p);
-  saveStoredProperties(localProperties);
-  await fireWebhook(API_CONFIG.UPDATE_PROPERTY, { ...normalized, action: 'update' });
-  return true;
-};
-
-export const deleteProperty = async (id: string): Promise<boolean> => {
-  const target = localProperties.find(p => p.id === id);
-  if (!target) return false;
-
-  localProperties = localProperties.filter(p => p.id !== id);
-  saveStoredProperties(localProperties);
-  
-  await fireWebhook(API_CONFIG.DELETE_PROPERTY, { 
-    id, 
-    action: 'delete',
-    title: target.title,
-    city: target.city,
-    timestamp: new Date().toISOString(),
-    is_deleted: true
-  });
-  return true;
 };
