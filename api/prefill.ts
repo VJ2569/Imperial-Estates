@@ -9,16 +9,15 @@ export default async function handler(req: any, res: any) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
 
-  const { 
-    call_session_id, 
-    customer_name, 
-    customer_email, 
-    customer_number, 
-    project_interested, 
-    budget, 
-    timeline, 
-    message 
-  } = req.body;
+ const { 
+  call_session_id,
+  name,
+  email,
+  phone,
+  enquiry_type,
+  property_interest,
+  message
+} = req.body;
 
   if (!call_session_id) {
     return res.status(400).json({ error: 'Missing call_session_id primary key.' });
