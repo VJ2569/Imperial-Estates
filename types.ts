@@ -58,11 +58,26 @@ export interface ApiConfig {
   ADD_PROPERTY: string;
   UPDATE_PROPERTY: string;
   DELETE_PROPERTY: string;
+  GET_LEADS: string;
 }
 
 export interface Assistant {
   id: string;
   name: string;
+}
+
+export interface Lead {
+  id: string;
+  call_id?: string;
+  name: string;
+  phone: string;
+  email: string;
+  project_interested?: string;
+  budget?: string;
+  timeline?: string;
+  message?: string;
+  timestamp: string;
+  status: 'new' | 'contacted' | 'closed';
 }
 
 export interface RetellCall {
