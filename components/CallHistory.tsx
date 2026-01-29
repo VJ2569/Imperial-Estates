@@ -19,9 +19,9 @@ import {
   DollarSign
 } from 'lucide-react';
 import { 
-  fetchRetellDirectCalls, 
+  fetchVoiceDirectCalls, 
   fetchWebhookCalls, 
-  getStoredRetellCalls,
+  getStoredVoiceCalls,
   getStoredWebhookCalls 
 } from '../services/retellService';
 import { format, isValid } from 'date-fns';
@@ -38,7 +38,7 @@ const CallHistory: React.FC = () => {
 
   useEffect(() => {
     // Immediate cache load
-    const cached = activeTab === 'voice' ? getStoredRetellCalls() : getStoredWebhookCalls();
+    const cached = activeTab === 'voice' ? getStoredVoiceCalls() : getStoredWebhookCalls();
     setData(cached);
     loadData();
   }, [activeTab]);
@@ -49,13 +49,13 @@ const CallHistory: React.FC = () => {
     try {
       let result: any[] = [];
       if (activeTab === 'voice') {
-        result = await fetchRetellDirectCalls();
+        result = await fetchVoiceDirectCalls();
       } else {
         result = await fetchWebhookCalls();
       }
       setData(Array.isArray(result) ? result : []);
     } catch (err: any) {
-      setError("Protocol Sync Interrupted: Check your API Keys and Webhook availability.");
+      setError("Protocol Sync Interrupted: Check your API Configuration and Webhook availability.");
     } finally {
       setLoading(false);
     }
@@ -115,7 +115,7 @@ const CallHistory: React.FC = () => {
           <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Receptionist Console</h2>
           <div className="flex items-center gap-10 mt-5">
             {[
-              { id: 'voice', label: 'Voice Stream (Retell API)', icon: Activity },
+              { id: 'voice', label: 'Voice Intelligence Stream', icon: Activity },
               { id: 'enquiry', label: 'Enquiry Hub (Webhook)', icon: Database }
             ].map((tab) => (
               <button 
@@ -224,7 +224,7 @@ const CallHistory: React.FC = () => {
                       <h3 className="font-black text-3xl text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Record Inspection</h3>
                       <div className="flex items-center gap-4 mt-4">
                          <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-700">
-                           {activeTab === 'voice' ? 'Direct Retell API' : 'Operational Webhook'}
+                           {activeTab === 'voice' ? 'Direct Intelligence API' : 'Operational Webhook'}
                          </span>
                          <span className="text-slate-300">•</span>
                          <span className="text-xs font-bold text-slate-500">REF: {selectedRecord.call_id || selectedRecord.id || '---'}</span>
