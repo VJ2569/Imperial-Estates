@@ -1,9 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   BarChart, Bar, LineChart, Line, Legend, ComposedChart, ReferenceLine 
 } from 'recharts';
-import { fetchRetellCalls, getStoredRetellCalls } from '../services/retellService';
+// Fix: Renamed fetchRetellCalls to fetchRetellDirectCalls to match services/retellService.ts exports
+import { fetchRetellDirectCalls, getStoredRetellCalls } from '../services/retellService';
 import { fetchProperties, getStoredProperties } from '../services/propertyService';
 import { Property, RetellCall } from '../types';
 import { TrendingUp, Home, Phone, DollarSign, Clock, AlertTriangle, Activity } from 'lucide-react';
@@ -36,9 +38,10 @@ const AnalyticsDashboard: React.FC = () => {
           setLoading(true);
       }
 
+      // Fix: Updated to call the correct function fetchRetellDirectCalls
       const [propData, callData] = await Promise.all([
         fetchProperties(),
-        fetchRetellCalls()
+        fetchRetellDirectCalls()
       ]);
       setProperties(propData);
       setCalls(callData);
