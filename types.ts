@@ -79,7 +79,7 @@ export interface Lead {
   status: 'new' | 'contacted' | 'closed';
 }
 
-export interface RetellCall {
+export interface VoiceCall {
   call_id: string;
   agent_id: string;
   call_status: string;
