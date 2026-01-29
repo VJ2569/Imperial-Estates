@@ -1,3 +1,4 @@
+
 import { AGENT_CONFIG, API_CONFIG } from '../constants';
 import { RetellCall, Lead } from '../types';
 
@@ -51,59 +52,42 @@ export const getStoredLeads = (): Lead[] => {
 
 export const fetchLeads = async (): Promise<Lead[]> => {
   try {
+    // Calling n8n webhook with action=get_leads
     const response = await fetch(`${API_CONFIG.GET_CALLS}?action=get_leads`);
     if (response.ok) {
       const data = await response.json();
-      const fetched = Array.isArray(data) ? data : (data.leads || []);
+      const fetched = Array.isArray(data) ? data : (data.leads || data.data || []);
       localLeads = fetched;
       saveStoredLeads(localLeads);
       return localLeads;
     }
   } catch (error) {
-    console.warn('Failed to fetch leads from webhook, using cache.');
+    console.warn('Failed to fetch leads from n8n webhook, using cache.');
   }
   return localLeads;
 };
 
 export const fetchRetellCalls = async (): Promise<RetellCall[]> => {
   try {
+    // Calling n8n webhook with action=get_calls
     const response = await fetch(`${API_CONFIG.GET_CALLS}?action=get_calls`);
     if (response.ok) {
       const data = await response.json();
-      const fetched = Array.isArray(data) ? data : (data.calls || []);
-      localCalls = fetched;
+      const fetched = Array.isArray(data) ? data : (data.calls || data.data || []);
+      
+      // Ensure data has correct IDs and format
+      const mapped = fetched.map((c: any) => ({
+        ...c,
+        call_id: c.call_id || c.call_session_id || `CALL-${Date.now()}-${Math.random()}`,
+        start_timestamp: c.start_timestamp || Date.now()
+      }));
+
+      localCalls = mapped.sort((a: any, b: any) => b.start_timestamp - a.start_timestamp);
       saveStoredCalls(localCalls);
       return localCalls;
     }
   } catch (error) {
-    console.warn('Unified database fetch failed, attempting Retell fallback or using cache.');
+    console.warn('N8N call fetch failed, using cache.');
   }
-
-  // Fallback to Retell API directly if webhook fails
-  const apiKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
-  if (!apiKey || apiKey === 'YOUR_AGENT_API_KEY') {
-    return localCalls;
-  }
-
-  try {
-    const response = await fetch('https://api.retellai.com/v2/list-calls', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ limit: 50 })
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const calls = Array.isArray(data) ? data : (data.calls || []);
-      localCalls = calls;
-      saveStoredCalls(localCalls);
-    }
-  } catch (error) {
-    console.error("Failed to fetch from Retell fallback:", error);
-  }
-
   return localCalls;
 };
