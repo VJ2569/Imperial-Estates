@@ -199,8 +199,8 @@ const CallHistory: React.FC = () => {
                       <td className="px-8 py-6 text-gray-600 dark:text-gray-400 text-sm font-mono">{formatDuration(call)}</td>
                       <td className="px-8 py-6 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {call.recording_url && (
-                            <a href={call.recording_url} target="_blank" className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all">
+                          {call.recording && (
+                            <a href={call.recording} target="_blank" className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all">
                               <Play size={18} />
                             </a>
                           )}
