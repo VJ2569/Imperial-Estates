@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { 
   Play, 
@@ -19,7 +18,7 @@ import {
 } from 'lucide-react';
 import { fetchRetellCalls, getStoredRetellCalls, fetchLeads, getStoredLeads } from '../services/retellService';
 import { RetellCall, Assistant, Lead } from '../types';
-import { format } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 const CallHistory: React.FC = () => {
   const [view, setView] = useState<'voice' | 'leads'>('voice');
@@ -48,19 +47,31 @@ const CallHistory: React.FC = () => {
 
   const loadData = async () => {
     setLoading(true);
-    // Initial load from cache
     setCalls(getStoredRetellCalls());
     setLeads(getStoredLeads());
 
-    // Refresh from network
-    const [callData, leadData] = await Promise.all([
-      fetchRetellCalls(),
-      fetchLeads()
-    ]);
+    try {
+      const [callData, leadData] = await Promise.all([
+        fetchRetellCalls(),
+        fetchLeads()
+      ]);
+      setCalls(callData);
+      setLeads(leadData);
+    } catch (e) {
+      console.error("Critical failure during data refresh", e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    setCalls(callData);
-    setLeads(leadData);
-    setLoading(false);
+  const safeFormat = (dateInput: any, formatStr: string) => {
+    try {
+      const d = new Date(dateInput);
+      if (!isValid(d)) return '---';
+      return format(d, formatStr);
+    } catch (e) {
+      return '---';
+    }
   };
 
   const formatDuration = (call: RetellCall) => {
@@ -160,7 +171,7 @@ const CallHistory: React.FC = () => {
         </div>
       </div>
 
-      <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden">
+      <div className="bg-white dark:bg-slate-900 rounded-[32px] shadow-sm border border-gray-200 dark:border-slate-800 overflow-hidden min-h-[400px]">
         <div className="overflow-x-auto">
           {view === 'voice' ? (
             <table className="w-full text-left border-collapse min-w-[800px]">
@@ -178,7 +189,9 @@ const CallHistory: React.FC = () => {
                   <tr key={call.call_id} className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors group">
                     <td className="px-8 py-6">{renderCallStatus(call)}</td>
                     <td className="px-8 py-6 font-bold text-slate-900 dark:text-white">{call.customer_number || 'Inbound'}</td>
-                    <td className="px-8 py-6 text-gray-500 dark:text-gray-400 text-sm font-medium">{format(new Date(call.start_timestamp), 'MMM d, h:mm a')}</td>
+                    <td className="px-8 py-6 text-gray-500 dark:text-gray-400 text-sm font-medium">
+                        {safeFormat(call.start_timestamp, 'MMM d, h:mm a')}
+                    </td>
                     <td className="px-8 py-6 text-gray-600 dark:text-gray-400 text-sm font-mono">{formatDuration(call)}</td>
                     <td className="px-8 py-6 text-right">
                       <div className="flex items-center justify-end gap-2">
@@ -217,7 +230,7 @@ const CallHistory: React.FC = () => {
                     className="hover:bg-gray-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group"
                   >
                     <td className="px-8 py-6">
-                      <div className="font-bold text-slate-900 dark:text-white">{lead.name}</div>
+                      <div className="font-bold text-slate-900 dark:text-white">{lead.name || 'Unknown'}</div>
                       <div className="flex items-center gap-3 mt-1 text-slate-500 dark:text-slate-400 text-xs">
                          <span><Phone size={10} className="inline mr-1"/> {lead.phone}</span>
                          <span><Mail size={10} className="inline mr-1"/> {lead.email}</span>
@@ -230,7 +243,7 @@ const CallHistory: React.FC = () => {
                       ₹ {lead.budget || 'TBD'}
                     </td>
                     <td className="px-8 py-6 text-slate-500 dark:text-gray-400 text-sm font-medium">
-                      {format(new Date(lead.timestamp), 'MMM d, h:mm a')}
+                      {safeFormat(lead.timestamp, 'MMM d, h:mm a')}
                     </td>
                     <td className="px-8 py-6 text-right">
                       <div className="flex items-center justify-end gap-3">
@@ -281,14 +294,14 @@ const CallHistory: React.FC = () => {
                       <User size={32} />
                    </div>
                    <div>
-                      <h3 className="font-black text-2xl text-slate-900 dark:text-white tracking-tight">{selectedLead.name}</h3>
+                      <h3 className="font-black text-2xl text-slate-900 dark:text-white tracking-tight">{selectedLead.name || 'Inbound Lead'}</h3>
                       <div className="flex items-center gap-3 mt-1">
                         {renderLeadStatus(selectedLead.status)}
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{format(new Date(selectedLead.timestamp), 'MMM d, yyyy')}</span>
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{safeFormat(selectedLead.timestamp, 'MMM d, yyyy')}</span>
                       </div>
                    </div>
                 </div>
-                <button onClick={() => setSelectedLead(null)} className="p-3 hover:bg-slate-100 rounded-full text-slate-500"><X size={24} /></button>
+                <button onClick={() => setSelectedLead(null)} className="p-3 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-500"><X size={24} /></button>
              </div>
 
              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
