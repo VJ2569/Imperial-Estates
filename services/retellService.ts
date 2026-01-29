@@ -26,15 +26,14 @@ export const getStoredLeads = (): any[] => loadStored(STORAGE_KEY_LEADS);
 
 /**
  * Fetches enriched call data directly from Retell AI API.
- * Uses the API key saved in Settings.
+ * This provides the "Intelligence" view (transcripts, cost, recording).
  */
 export const fetchRetellDirectCalls = async (): Promise<any[]> => {
   try {
     const apiKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
     
-    // Safety check for placeholder keys
     if (!apiKey || apiKey === 'YOUR_AGENT_API_KEY' || apiKey.trim() === '') {
-      console.warn('Retell API Key not configured in Settings.');
+      console.warn('Retell API Key not configured.');
       return getStoredRetellCalls();
     }
 
@@ -48,30 +47,30 @@ export const fetchRetellDirectCalls = async (): Promise<any[]> => {
 
     if (response.ok) {
       const data = await response.json();
-      // Handle both direct array and wrapped response { calls: [...] }
+      // Handle array or wrapped response
       const rawData = Array.isArray(data) ? data : (data.calls || data.data || []);
       
-      // Basic normalization to ensure timestamps are numbers
       const normalizedData = rawData.map((call: any) => ({
         ...call,
+        _source: 'retell_api',
         start_timestamp: typeof call.start_timestamp === 'string' ? new Date(call.start_timestamp).getTime() : call.start_timestamp,
-        end_timestamp: typeof call.end_timestamp === 'string' ? new Date(call.end_timestamp).getTime() : call.end_timestamp
+        duration_formatted: call.duration_ms ? `${Math.floor(call.duration_ms / 60000)}m ${Math.floor((call.duration_ms % 60000) / 1000)}s` : '---'
       }));
 
       saveStored(STORAGE_KEY_RETELL_CALLS, normalizedData);
       return normalizedData;
     } else {
-      const errText = await response.text();
-      console.error('Retell API error response:', response.status, errText);
+      console.error('Retell API Error:', response.status);
     }
   } catch (error) {
-    console.error('Retell API network failure. This may be a CORS restriction:', error);
+    console.error('Network error reaching Retell API. Check CORS settings.');
   }
   return getStoredRetellCalls();
 };
 
 /**
- * Fetches raw dynamic data from the n8n Call Webhook
+ * Fetches raw dynamic data from the n8n Call Webhook.
+ * This provides the "Raw Webhook" view.
  */
 export const fetchWebhookCalls = async (): Promise<any[]> => {
   try {
@@ -79,8 +78,9 @@ export const fetchWebhookCalls = async (): Promise<any[]> => {
     if (response.ok) {
       const data = await response.json();
       const rawData = Array.isArray(data) ? data : (data.calls || data.data || []);
-      saveStored(STORAGE_KEY_WEBHOOK_CALLS, rawData);
-      return rawData;
+      const normalizedData = rawData.map((call: any) => ({ ...call, _source: 'webhook' }));
+      saveStored(STORAGE_KEY_WEBHOOK_CALLS, normalizedData);
+      return normalizedData;
     }
   } catch (error) {
     console.warn('Webhook call fetch failed');
@@ -89,7 +89,7 @@ export const fetchWebhookCalls = async (): Promise<any[]> => {
 };
 
 /**
- * Fetches lead data from the n8n Lead Webhook
+ * Fetches lead data from the n8n Lead Webhook.
  */
 export const fetchLeads = async (): Promise<any[]> => {
   try {
