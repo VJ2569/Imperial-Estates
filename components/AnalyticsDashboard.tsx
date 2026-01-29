@@ -4,12 +4,11 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   BarChart, Bar, LineChart, Line, Legend, ComposedChart, ReferenceLine 
 } from 'recharts';
-// Fix: Renamed fetchRetellCalls to fetchRetellDirectCalls to match services/retellService.ts exports
 import { fetchRetellDirectCalls, getStoredRetellCalls } from '../services/retellService';
 import { fetchProperties, getStoredProperties } from '../services/propertyService';
 import { Property, RetellCall } from '../types';
-import { TrendingUp, Home, Phone, DollarSign, Clock, AlertTriangle, Activity } from 'lucide-react';
-import { format, subMonths, eachDayOfInterval, subDays, isSameDay, differenceInDays } from 'date-fns';
+import { TrendingUp, Home, Phone, DollarSign, Clock, AlertTriangle, Activity, Zap } from 'lucide-react';
+import { format, subMonths, eachDayOfInterval, subDays, isSameDay, differenceInDays, isValid } from 'date-fns';
 
 const COLORS = {
   primary: '#3b82f6',
@@ -24,28 +23,39 @@ const AnalyticsDashboard: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [calls, setCalls] = useState<RetellCall[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'error'>('idle');
 
   useEffect(() => {
     const loadData = async () => {
+      // 1. Instant load from persistent cache
       const cachedProps = getStoredProperties();
       const cachedCalls = getStoredRetellCalls();
       
-      if (cachedProps.length > 0 || cachedCalls.length > 0) {
-          setProperties(cachedProps);
-          setCalls(cachedCalls);
-          setLoading(false);
-      } else {
+      setProperties(cachedProps);
+      setCalls(cachedCalls);
+      
+      if (cachedProps.length === 0 && cachedCalls.length === 0) {
           setLoading(true);
+      } else {
+          setLoading(false);
       }
 
-      // Fix: Updated to call the correct function fetchRetellDirectCalls
-      const [propData, callData] = await Promise.all([
-        fetchProperties(),
-        fetchRetellDirectCalls()
-      ]);
-      setProperties(propData);
-      setCalls(callData);
-      setLoading(false);
+      // 2. Background sync
+      setSyncStatus('syncing');
+      try {
+        const [propData, callData] = await Promise.all([
+          fetchProperties(),
+          fetchRetellDirectCalls()
+        ]);
+        
+        if (propData) setProperties(propData);
+        if (callData) setCalls(callData);
+        setSyncStatus('idle');
+      } catch (err) {
+        setSyncStatus('error');
+      } finally {
+        setLoading(false);
+      }
     };
     loadData();
   }, []);
@@ -56,7 +66,11 @@ const AnalyticsDashboard: React.FC = () => {
     const days = eachDayOfInterval({ start, end });
 
     return days.map(day => {
-      const dayCalls = calls.filter(c => isSameDay(new Date(c.start_timestamp), day));
+      const dayCalls = calls.filter(c => {
+        const cDate = new Date(c.start_timestamp);
+        return isValid(cDate) && isSameDay(cDate, day);
+      });
+      
       return {
         date: format(day, 'MMM dd'),
         calls: dayCalls.length,
@@ -67,7 +81,6 @@ const AnalyticsDashboard: React.FC = () => {
 
   const getInventoryTrends = () => {
     const end = new Date();
-    const start = subMonths(end, 5);
     const months = [5, 4, 3, 2, 1, 0].map(i => {
        const d = subMonths(end, i);
        return { 
@@ -77,7 +90,11 @@ const AnalyticsDashboard: React.FC = () => {
     });
 
     return months.map(({ month, dateObj }) => {
-       const activeProps = properties.filter(p => new Date(p.availableFrom) <= dateObj);
+       const activeProps = properties.filter(p => {
+          const availDate = new Date(p.availableFrom || p.timeline || Date.now());
+          return isValid(availDate) && availDate <= dateObj;
+       });
+       
        return {
          name: month,
          apartment: activeProps.filter(p => p.type === 'apartment').length,
@@ -87,59 +104,21 @@ const AnalyticsDashboard: React.FC = () => {
     });
   };
 
-  const getMarketBalance = () => {
-    const detectIntent = (call: RetellCall) => {
-        const text = (call.transcript || call.call_analysis?.call_summary || '').toLowerCase();
-        if (text.includes('villa')) return 'villa';
-        if (text.includes('apartment') || text.includes('flat')) return 'apartment';
-        if (text.includes('commercial') || text.includes('office') || text.includes('shop')) return 'commercial';
-        return 'general';
-    };
-
-    const demandCounts = { apartment: 0, villa: 0, commercial: 0 };
-    calls.forEach(c => {
-        const intent = detectIntent(c);
-        if (intent in demandCounts) {
-            demandCounts[intent as keyof typeof demandCounts]++;
-        }
-    });
-
-    const inventoryCounts = {
-        apartment: properties.filter(p => p.type === 'apartment').length,
-        villa: properties.filter(p => p.type === 'villa').length,
-        commercial: properties.filter(p => p.type === 'commercial').length,
-    };
-
-    return [
-        { name: 'Apartment', inventory: inventoryCounts.apartment, demand: demandCounts.apartment },
-        { name: 'Villa', inventory: inventoryCounts.villa, demand: demandCounts.villa },
-        { name: 'Commercial', inventory: inventoryCounts.commercial, demand: demandCounts.commercial },
-    ];
-  };
-
-  const getOccupancyTrend = () => {
-     const total = properties.length;
-     if (total === 0) return [];
-     const currentOccupied = properties.filter(p => p.status !== 'available').length;
-     const currentRate = (currentOccupied / total) * 100;
-     return [5, 4, 3, 2, 1, 0].map(i => {
-        const volatility = Math.sin(i) * 5;
-        const trend = currentRate - (i * 1.5) + volatility;
-        return {
-           month: format(subMonths(new Date(), i), 'MMM'),
-           rate: Math.max(0, Math.min(100, Math.round(trend)))
-        };
-     });
-  };
-
-  const totalValue = properties.reduce((acc, curr) => acc + (curr.isRental ? 0 : curr.price), 0);
+  const totalValue = properties.reduce((acc, curr) => acc + (curr.isRental ? 0 : (curr.price || 0)), 0);
   const availableProps = properties.filter(p => p.status === 'available');
+  
   const totalVacancyDays = availableProps.reduce((acc, p) => {
-      const days = differenceInDays(new Date(), new Date(p.availableFrom));
+      const availDate = new Date(p.availableFrom || p.timeline || Date.now());
+      const days = isValid(availDate) ? differenceInDays(new Date(), availDate) : 0;
       return acc + (days > 0 ? days : 0);
   }, 0);
+
   const avgVacancyDuration = availableProps.length ? Math.round(totalVacancyDays / availableProps.length) : 0;
-  const recentCalls = calls.filter(c => differenceInDays(new Date(), new Date(c.start_timestamp)) < 7).length;
+  const recentCalls = calls.filter(c => {
+      const cDate = new Date(c.start_timestamp);
+      return isValid(cDate) && differenceInDays(new Date(), cDate) < 7;
+  }).length;
+
   const durationRisk = Math.min(100, (avgVacancyDuration / 90) * 100);
   const demandRisk = Math.max(0, 100 - (recentCalls * 5));
   const vacancyRiskScore = Math.round((durationRisk * 0.6) + (demandRisk * 0.4));
@@ -151,93 +130,123 @@ const AnalyticsDashboard: React.FC = () => {
   };
 
   const StatCard = ({ icon: Icon, label, value, subtext, colorClass }: any) => (
-    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-gray-100 dark:border-slate-800 shadow-sm flex flex-col justify-between h-full relative overflow-hidden group hover:shadow-md transition-shadow">
-       <div className="flex justify-between items-start mb-4">
-          <div className={`p-2.5 rounded-lg ${colorClass} bg-opacity-10 dark:bg-opacity-20`}>
-             <Icon size={20} className={colorClass.replace('bg-', 'text-')} />
+    <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between h-full relative overflow-hidden group hover:shadow-xl hover:-translate-y-1 transition-all duration-500">
+       <div className="flex justify-between items-start mb-6">
+          <div className={`p-3 rounded-2xl ${colorClass} bg-opacity-10 dark:bg-opacity-20`}>
+             <Icon size={24} className={colorClass.replace('bg-', 'text-')} />
           </div>
-          {subtext && <span className="text-xs font-medium text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded-full">{subtext}</span>}
+          {subtext && <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full uppercase tracking-widest">{subtext}</span>}
        </div>
        <div>
-          <h4 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{value}</h4>
-          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">{label}</p>
+          <h4 className="text-3xl font-black text-slate-900 dark:text-white mb-1 tracking-tight">{value}</h4>
+          <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest">{label}</p>
        </div>
     </div>
   );
 
   if (loading) return (
       <div className="h-96 w-full flex items-center justify-center">
-          <div className="flex flex-col items-center gap-3">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="text-slate-400 text-sm">Loading analytics...</p>
+          <div className="flex flex-col items-center gap-6">
+            <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-xs font-black uppercase tracking-[0.3em] text-slate-400">Initializing Operational Data...</p>
           </div>
       </div>
   );
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-8 w-full pb-20">
-      <div className="flex justify-between items-end">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-10 w-full pb-32 animate-in fade-in duration-700">
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
          <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Operational Intelligence</h2>
-            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Real-time market analysis and portfolio performance</p>
+            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Operational Intelligence</h2>
+            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium italic">Portfolio velocity and communication metrics</p>
+         </div>
+         {syncStatus === 'syncing' && (
+           <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl border border-blue-100 dark:border-blue-800/50 animate-pulse">
+              <RefreshCcw size={14} className="animate-spin" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Live Sync Active</span>
+           </div>
+         )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+         <div className="bg-white dark:bg-slate-900 p-10 rounded-[48px] border border-slate-100 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+               <div>
+                  <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
+                      <Activity size={20} className="text-blue-500"/>
+                      Voice Traffic
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Daily interaction volume (30D)</p>
+               </div>
+               <div className="text-right">
+                  <span className="text-2xl font-black text-blue-600">{calls.length}</span>
+                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Total Sessions</p>
+               </div>
+            </div>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={getCallsOverTime()}>
+                      <defs>
+                          <linearGradient id="colorCalls" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.2}/>
+                              <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0}/>
+                          </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" opacity={0.3} />
+                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} minTickGap={30} />
+                      <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                      <Tooltip contentStyle={{borderRadius: '20px', border: 'none', backgroundColor: '#0f172a', color: '#fff', fontSize: '12px'}} />
+                      <Area type="monotone" dataKey="calls" stroke={COLORS.primary} fillOpacity={1} fill="url(#colorCalls)" strokeWidth={4} />
+                  </AreaChart>
+              </ResponsiveContainer>
+            </div>
+         </div>
+
+         <div className="bg-white dark:bg-slate-900 p-10 rounded-[48px] border border-slate-100 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center justify-between mb-8">
+               <div>
+                  <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
+                      <TrendingUp size={20} className="text-emerald-500"/>
+                      Asset Deployment
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Portfolio diversification trends</p>
+               </div>
+            </div>
+            <div className="h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={getInventoryTrends()}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" opacity={0.3} />
+                      <XAxis dataKey="month" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                      <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
+                      <Tooltip cursor={{fill: '#f8fafc'}} contentStyle={{borderRadius: '20px', border: 'none', backgroundColor: '#0f172a', color: '#fff', fontSize: '12px'}} />
+                      <Legend iconType="circle" wrapperStyle={{fontSize: '10px', paddingTop: '20px', fontWeight: 'bold', textTransform: 'uppercase'}} />
+                      <Bar dataKey="apartment" stackId="a" fill={COLORS.primary} radius={[4, 4, 0, 0]} name="Apts" />
+                      <Bar dataKey="villa" stackId="a" fill={COLORS.purple} name="Villas" />
+                      <Bar dataKey="commercial" stackId="a" fill={COLORS.tertiary} name="Comm" />
+                  </BarChart>
+              </ResponsiveContainer>
+            </div>
          </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm h-80">
-            <h3 className="font-bold text-gray-800 dark:text-white mb-1 flex items-center gap-2">
-                <Activity size={18} className="text-blue-500"/>
-                Engagement Volume
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Daily inbound call traffic (30 Days)</p>
-            <ResponsiveContainer width="100%" height="85%">
-                <AreaChart data={getCallsOverTime()}>
-                    <defs>
-                        <linearGradient id="colorCalls" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.1}/>
-                            <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0}/>
-                        </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" opacity={0.3} />
-                    <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} minTickGap={30} />
-                    <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                    <Tooltip contentStyle={{borderRadius: '8px', border: 'none', backgroundColor: '#1e293b', color: '#fff'}} />
-                    <Area type="monotone" dataKey="calls" stroke={COLORS.primary} fillOpacity={1} fill="url(#colorCalls)" strokeWidth={2} />
-                </AreaChart>
-            </ResponsiveContainer>
-         </div>
-
-         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm h-80">
-            <h3 className="font-bold text-gray-800 dark:text-white mb-1 flex items-center gap-2">
-                <TrendingUp size={18} className="text-emerald-500"/>
-                Inventory Trends
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Portfolio composition over last 6 months</p>
-            <ResponsiveContainer width="100%" height="85%">
-                <BarChart data={getInventoryTrends()}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" opacity={0.3} />
-                    <XAxis dataKey="month" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                    <Tooltip contentStyle={{borderRadius: '8px', border: 'none', backgroundColor: '#1e293b', color: '#fff'}} />
-                    <Legend iconType="circle" wrapperStyle={{fontSize: '12px'}} />
-                    <Bar dataKey="apartment" stackId="a" fill={COLORS.primary} name="Apartments" />
-                    <Bar dataKey="villa" stackId="a" fill={COLORS.purple} name="Villas" />
-                    <Bar dataKey="commercial" stackId="a" fill={COLORS.tertiary} name="Commercial" />
-                </BarChart>
-            </ResponsiveContainer>
-         </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
           <StatCard icon={AlertTriangle} label="Vacancy Risk" value={vacancyRiskScore} subtext="/ 100" colorClass={getRiskColor(vacancyRiskScore).replace('text-', 'bg-')} />
-          <StatCard icon={Clock} label="Avg Vacancy" value={`${avgVacancyDuration}d`} colorClass="bg-blue-500" />
-          <StatCard icon={TrendingUp} label="Active" value={availableProps.length} colorClass="bg-emerald-500" />
-          <StatCard icon={Phone} label="Calls" value={calls.length} colorClass="bg-purple-500" />
-          <StatCard icon={DollarSign} label="Portfolio" value={`₹${(totalValue / 10000000).toFixed(1)}Cr`} colorClass="bg-amber-500" />
-          <StatCard icon={Home} label="Properties" value={properties.length} colorClass="bg-slate-500" />
+          <StatCard icon={Clock} label="Avg Turnaround" value={`${avgVacancyDuration}d`} colorClass="bg-blue-500" />
+          <StatCard icon={Zap} label="Market Pull" value={recentCalls} subtext="L7D" colorClass="bg-emerald-500" />
+          <StatCard icon={Phone} label="Voice Log" value={calls.length} colorClass="bg-purple-500" />
+          <StatCard icon={DollarSign} label="Asset Value" value={`₹${(totalValue / 10000000).toFixed(1)}Cr`} colorClass="bg-amber-500" />
+          <StatCard icon={Home} label="Total Assets" value={properties.length} colorClass="bg-slate-500" />
       </div>
     </div>
   );
 };
+
+// Simple Refresh icon for the status badge
+const RefreshCcw = ({ size, className }: { size: number, className?: string }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+    <path d="M21 3v5h-5" />
+  </svg>
+);
 
 export default AnalyticsDashboard;
