@@ -87,7 +87,7 @@ export interface RetellCall {
   end_timestamp: number;
   duration_ms?: number;
   transcript?: string;
-  recording?: string;
+  recording_url?: string;
   call_analysis?: {
     call_summary?: string;
     call_successful?: boolean;
