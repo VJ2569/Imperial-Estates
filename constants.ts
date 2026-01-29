@@ -1,3 +1,4 @@
+
 import { ApiConfig } from './types';
 
 // Webhook URLs
@@ -13,7 +14,7 @@ export const API_CONFIG: ApiConfig = {
 };
 
 export const AGENT_CONFIG = {
-  // Agent API configuration
-  API_KEY: 'YOUR_AGENT_API_KEY',
-  AGENT_ID: 'YOUR_AGENT_ID'
+  // Agent API configuration - Placeholder values for local override via Settings
+  API_KEY: '', 
+  AGENT_ID: ''
 };
