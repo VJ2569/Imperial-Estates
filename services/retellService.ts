@@ -1,93 +1,77 @@
-
 import { AGENT_CONFIG, API_CONFIG } from '../constants';
 import { RetellCall, Lead } from '../types';
 
 const STORAGE_KEY = 'imperial_agent_calls';
 const LEADS_STORAGE_KEY = 'imperial_agent_leads';
 
-const loadStoredCalls = (): RetellCall[] => {
+const loadStored = <T>(key: string): T[] => {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(key);
     return stored ? JSON.parse(stored) : [];
   } catch (error) {
     return [];
   }
 };
 
-const loadStoredLeads = (): Lead[] => {
+const saveStored = (key: string, data: any) => {
   try {
-    const stored = localStorage.getItem(LEADS_STORAGE_KEY);
-    return stored ? JSON.parse(stored) : [];
-  } catch (error) {
-    return [];
-  }
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (error) {}
 };
 
-const saveStoredCalls = (calls: RetellCall[]) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(calls));
-  } catch (error) {
-    console.warn('Failed to save agent calls locally:', error);
-  }
-};
-
-const saveStoredLeads = (leads: Lead[]) => {
-  try {
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
-  } catch (error) {
-    console.warn('Failed to save leads locally:', error);
-  }
-};
-
-let localCalls: RetellCall[] = loadStoredCalls();
-let localLeads: Lead[] = loadStoredLeads();
-
-export const getStoredRetellCalls = (): RetellCall[] => {
-  return localCalls;
-};
-
-export const getStoredLeads = (): Lead[] => {
-  return localLeads;
-};
+export const getStoredRetellCalls = (): RetellCall[] => loadStored<RetellCall>(STORAGE_KEY);
+export const getStoredLeads = (): Lead[] => loadStored<Lead>(LEADS_STORAGE_KEY);
 
 export const fetchLeads = async (): Promise<Lead[]> => {
   try {
-    // Calling n8n webhook with action=get_leads
     const response = await fetch(`${API_CONFIG.GET_CALLS}?action=get_leads`);
     if (response.ok) {
       const data = await response.json();
-      const fetched = Array.isArray(data) ? data : (data.leads || data.data || []);
-      localLeads = fetched;
-      saveStoredLeads(localLeads);
-      return localLeads;
+      const rawLeads = Array.isArray(data) ? data : (data.leads || data.data || []);
+      
+      // Sanitize leads to prevent UI crashes
+      const sanitized: Lead[] = rawLeads.map((l: any) => ({
+        id: l.id || `LEAD-${Math.random()}`,
+        name: l.name || 'Anonymous Lead',
+        phone: l.phone || l.customer_number || '---',
+        email: l.email || '---',
+        project_interested: l.project_interested || 'General',
+        budget: l.budget || 'TBD',
+        timeline: l.timeline || 'Immediate',
+        message: l.message || '',
+        timestamp: l.timestamp || new Date().toISOString(),
+        status: l.status || 'new'
+      }));
+
+      saveStored(LEADS_STORAGE_KEY, sanitized);
+      return sanitized;
     }
   } catch (error) {
-    console.warn('Failed to fetch leads from n8n webhook, using cache.');
+    console.warn('Lead fetch failed, using cache.');
   }
-  return localLeads;
+  return getStoredLeads();
 };
 
 export const fetchRetellCalls = async (): Promise<RetellCall[]> => {
   try {
-    // Calling n8n webhook with action=get_calls
     const response = await fetch(`${API_CONFIG.GET_CALLS}?action=get_calls`);
     if (response.ok) {
       const data = await response.json();
-      const fetched = Array.isArray(data) ? data : (data.calls || data.data || []);
+      const rawCalls = Array.isArray(data) ? data : (data.calls || data.data || []);
       
-      // Ensure data has correct IDs and format
-      const mapped = fetched.map((c: any) => ({
+      const sanitized: RetellCall[] = rawCalls.map((c: any) => ({
         ...c,
-        call_id: c.call_id || c.call_session_id || `CALL-${Date.now()}-${Math.random()}`,
-        start_timestamp: c.start_timestamp || Date.now()
+        call_id: c.call_id || c.call_session_id || `CALL-${Math.random()}`,
+        start_timestamp: c.start_timestamp || Date.now(),
+        customer_number: c.customer_number || 'Inbound'
       }));
 
-      localCalls = mapped.sort((a: any, b: any) => b.start_timestamp - a.start_timestamp);
-      saveStoredCalls(localCalls);
-      return localCalls;
+      const sorted = sanitized.sort((a, b) => b.start_timestamp - a.start_timestamp);
+      saveStored(STORAGE_KEY, sorted);
+      return sorted;
     }
   } catch (error) {
-    console.warn('N8N call fetch failed, using cache.');
+    console.warn('Call fetch failed, using cache.');
   }
-  return localCalls;
+  return getStoredRetellCalls();
 };
