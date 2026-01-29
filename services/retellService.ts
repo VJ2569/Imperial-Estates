@@ -2,7 +2,7 @@
 import { API_CONFIG, AGENT_CONFIG } from '../constants';
 
 const STORAGE_KEY_WEBHOOK_CALLS = 'imperial_webhook_calls';
-const STORAGE_KEY_RETELL_CALLS = 'imperial_retell_calls';
+const STORAGE_KEY_VOICE_CALLS = 'imperial_voice_calls';
 const STORAGE_KEY_LEADS = 'imperial_leads';
 
 const loadStored = (key: string): any[] => {
@@ -20,21 +20,21 @@ const saveStored = (key: string, data: any[]) => {
   } catch (error) {}
 };
 
-export const getStoredRetellCalls = (): any[] => loadStored(STORAGE_KEY_RETELL_CALLS);
+export const getStoredVoiceCalls = (): any[] => loadStored(STORAGE_KEY_VOICE_CALLS);
 export const getStoredWebhookCalls = (): any[] => loadStored(STORAGE_KEY_WEBHOOK_CALLS);
 export const getStoredLeads = (): any[] => loadStored(STORAGE_KEY_LEADS);
 
 /**
- * Fetches enriched call data directly from Retell AI API.
+ * Fetches enriched call data directly from the Voice AI API.
  * This handles the "Voice Stream" (Deep intelligence).
  */
-export const fetchRetellDirectCalls = async (): Promise<any[]> => {
+export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
   try {
     const apiKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
     
     if (!apiKey || apiKey === 'YOUR_AGENT_API_KEY' || apiKey.trim() === '') {
-      console.warn('Retell API Key not configured. Please visit Settings.');
-      return getStoredRetellCalls();
+      console.warn('Voice AI API Key not configured. Please visit Settings.');
+      return getStoredVoiceCalls();
     }
 
     const response = await fetch('https://api.retellai.com/v2/list-calls', {
@@ -47,27 +47,26 @@ export const fetchRetellDirectCalls = async (): Promise<any[]> => {
 
     if (response.ok) {
       const data = await response.json();
-      // Retell can return a list directly or a wrapped object
       const rawData = Array.isArray(data) ? data : (data.calls || data.data || []);
       
       const normalizedData = rawData.map((call: any) => ({
         ...call,
-        _source_origin: 'retell_direct_api',
+        _source_origin: 'voice_direct_api',
         // Ensure timestamp is a number for reliable sorting/charting
         start_timestamp: typeof call.start_timestamp === 'string' ? new Date(call.start_timestamp).getTime() : call.start_timestamp,
         // Format duration for the table view
         duration_display: call.duration_ms ? `${Math.floor(call.duration_ms / 60000)}m ${Math.floor((call.duration_ms % 60000) / 1000)}s` : '---'
       }));
 
-      saveStored(STORAGE_KEY_RETELL_CALLS, normalizedData);
+      saveStored(STORAGE_KEY_VOICE_CALLS, normalizedData);
       return normalizedData;
     } else {
-      console.error('Retell API error:', response.status);
+      console.error('Voice API error:', response.status);
     }
   } catch (error) {
-    console.error('Network error reaching Retell API. Ensure CORS is not an issue.');
+    console.error('Network error reaching Voice AI API. Ensure CORS is not an issue.');
   }
-  return getStoredRetellCalls();
+  return getStoredVoiceCalls();
 };
 
 /**
