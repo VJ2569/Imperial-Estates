@@ -4,9 +4,9 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
   BarChart, Bar, LineChart, Line, Legend, ComposedChart, ReferenceLine 
 } from 'recharts';
-import { fetchRetellDirectCalls, getStoredRetellCalls } from '../services/retellService';
+import { fetchVoiceDirectCalls, getStoredVoiceCalls } from '../services/retellService';
 import { fetchProperties, getStoredProperties } from '../services/propertyService';
-import { Property, RetellCall } from '../types';
+import { Property, VoiceCall } from '../types';
 import { TrendingUp, Home, Phone, DollarSign, Clock, AlertTriangle, Activity, Zap, RefreshCcw } from 'lucide-react';
 import { format, subMonths, eachDayOfInterval, subDays, isSameDay, differenceInDays, isValid } from 'date-fns';
 
@@ -21,7 +21,7 @@ const COLORS = {
 
 const AnalyticsDashboard: React.FC = () => {
   const [properties, setProperties] = useState<Property[]>([]);
-  const [calls, setCalls] = useState<RetellCall[]>([]);
+  const [calls, setCalls] = useState<VoiceCall[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'error'>('idle');
 
@@ -32,7 +32,7 @@ const AnalyticsDashboard: React.FC = () => {
   const loadAllData = async () => {
     // 1. Instant load from local cache to avoid empty screen
     const cachedProps = getStoredProperties();
-    const cachedCalls = getStoredRetellCalls();
+    const cachedCalls = getStoredVoiceCalls();
     
     setProperties(cachedProps);
     setCalls(cachedCalls);
@@ -48,7 +48,7 @@ const AnalyticsDashboard: React.FC = () => {
     try {
       const [propData, callData] = await Promise.all([
         fetchProperties(),
-        fetchRetellDirectCalls()
+        fetchVoiceDirectCalls()
       ]);
       
       if (propData) setProperties(propData);
@@ -191,7 +191,7 @@ const AnalyticsDashboard: React.FC = () => {
                <div>
                   <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
                       <Activity size={22} className="text-blue-500"/>
-                      Voice Traffic (Retell)
+                      Voice Intelligence Traffic
                   </h3>
                   <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Daily interaction load (30 Days)</p>
                </div>
@@ -253,7 +253,7 @@ const AnalyticsDashboard: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
           <StatCard icon={AlertTriangle} label="Vacancy Risk" value={vacancyRiskScore} subtext="/ 100" colorClass={getRiskColor(vacancyRiskScore).replace('text-', 'bg-')} />
           <StatCard icon={Clock} label="Avg Velocity" value={`${avgVacancyDuration}d`} colorClass="bg-blue-500" />
-          <StatCard icon={Zap} label="Weekly Leads" value={recentCalls} subtext="Direct API" colorClass="bg-emerald-500" />
+          <StatCard icon={Zap} label="Weekly Engagement" value={recentCalls} subtext="Direct API" colorClass="bg-emerald-500" />
           <StatCard icon={Phone} label="Voice Matrix" value={calls.length} colorClass="bg-purple-500" />
           <StatCard icon={DollarSign} label="Portfolio Val" value={`₹${(totalValue / 10000000).toFixed(1)}Cr`} colorClass="bg-amber-500" />
           <StatCard icon={Home} label="Live Projects" value={properties.length} colorClass="bg-slate-500" />
