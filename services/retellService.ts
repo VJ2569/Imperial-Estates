@@ -1,8 +1,8 @@
+import { API_CONFIG, AGENT_CONFIG } from '../constants';
 
-import { API_CONFIG } from '../constants';
-
-const STORAGE_KEY_CALLS = 'imperial_dynamic_calls';
-const STORAGE_KEY_LEADS = 'imperial_dynamic_leads';
+const STORAGE_KEY_WEBHOOK_CALLS = 'imperial_webhook_calls';
+const STORAGE_KEY_RETELL_CALLS = 'imperial_retell_calls';
+const STORAGE_KEY_LEADS = 'imperial_leads';
 
 const loadStored = (key: string): any[] => {
   try {
@@ -19,28 +19,54 @@ const saveStored = (key: string, data: any[]) => {
   } catch (error) {}
 };
 
-export const getStoredRetellCalls = (): any[] => loadStored(STORAGE_KEY_CALLS);
+export const getStoredRetellCalls = (): any[] => loadStored(STORAGE_KEY_RETELL_CALLS);
+export const getStoredWebhookCalls = (): any[] => loadStored(STORAGE_KEY_WEBHOOK_CALLS);
 export const getStoredLeads = (): any[] => loadStored(STORAGE_KEY_LEADS);
 
 /**
- * Fetches data from the dynamic n8n webhook.
- * We return raw objects to allow the UI to generate columns dynamically.
+ * Fetches enriched call data directly from Retell AI API
  */
-export const fetchRetellCalls = async (): Promise<any[]> => {
+export const fetchRetellDirectCalls = async (): Promise<any[]> => {
+  try {
+    const apiKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
+    if (!apiKey || apiKey === 'YOUR_AGENT_API_KEY') return getStoredRetellCalls();
+
+    const response = await fetch('https://api.retellai.com/v2/list-calls', {
+      headers: { 'Authorization': `Bearer ${apiKey}` }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      saveStored(STORAGE_KEY_RETELL_CALLS, data);
+      return data;
+    }
+  } catch (error) {
+    console.warn('Retell API fetch failed');
+  }
+  return getStoredRetellCalls();
+};
+
+/**
+ * Fetches raw dynamic data from the n8n Call Webhook
+ */
+export const fetchWebhookCalls = async (): Promise<any[]> => {
   try {
     const response = await fetch(`${API_CONFIG.GET_CALLS}?action=get_calls`);
     if (response.ok) {
       const data = await response.json();
       const rawData = Array.isArray(data) ? data : (data.calls || data.data || []);
-      saveStored(STORAGE_KEY_CALLS, rawData);
+      saveStored(STORAGE_KEY_WEBHOOK_CALLS, rawData);
       return rawData;
     }
   } catch (error) {
-    console.warn('Call fetch failed, using cache.');
+    console.warn('Webhook call fetch failed');
   }
-  return getStoredRetellCalls();
+  return getStoredWebhookCalls();
 };
 
+/**
+ * Fetches lead data from the n8n Lead Webhook
+ */
 export const fetchLeads = async (): Promise<any[]> => {
   try {
     const response = await fetch(`${API_CONFIG.GET_CALLS}?action=get_leads`);
@@ -51,7 +77,7 @@ export const fetchLeads = async (): Promise<any[]> => {
       return rawData;
     }
   } catch (error) {
-    console.warn('Leads fetch failed, using cache.');
+    console.warn('Leads fetch failed');
   }
   return getStoredLeads();
 };
