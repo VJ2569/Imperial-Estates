@@ -1,11 +1,21 @@
 import { AGENT_CONFIG, API_CONFIG } from '../constants';
-import { RetellCall } from '../types';
+import { RetellCall, Lead } from '../types';
 
 const STORAGE_KEY = 'imperial_agent_calls';
+const LEADS_STORAGE_KEY = 'imperial_agent_leads';
 
 const loadStoredCalls = (): RetellCall[] => {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    return [];
+  }
+};
+
+const loadStoredLeads = (): Lead[] => {
+  try {
+    const stored = localStorage.getItem(LEADS_STORAGE_KEY);
     return stored ? JSON.parse(stored) : [];
   } catch (error) {
     return [];
@@ -20,16 +30,44 @@ const saveStoredCalls = (calls: RetellCall[]) => {
   }
 };
 
+const saveStoredLeads = (leads: Lead[]) => {
+  try {
+    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
+  } catch (error) {
+    console.warn('Failed to save leads locally:', error);
+  }
+};
+
 let localCalls: RetellCall[] = loadStoredCalls();
+let localLeads: Lead[] = loadStoredLeads();
 
 export const getStoredRetellCalls = (): RetellCall[] => {
   return localCalls;
 };
 
-export const fetchRetellCalls = async (): Promise<RetellCall[]> => {
-  // Try fetching from the unified database (e.g. n8n or internal DB)
+export const getStoredLeads = (): Lead[] => {
+  return localLeads;
+};
+
+export const fetchLeads = async (): Promise<Lead[]> => {
   try {
-    const response = await fetch(`${API_CONFIG.GET_CALLS}?action=get_unified_calls`);
+    const response = await fetch(`${API_CONFIG.GET_CALLS}?action=get_leads`);
+    if (response.ok) {
+      const data = await response.json();
+      const fetched = Array.isArray(data) ? data : (data.leads || []);
+      localLeads = fetched;
+      saveStoredLeads(localLeads);
+      return localLeads;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch leads from webhook, using cache.');
+  }
+  return localLeads;
+};
+
+export const fetchRetellCalls = async (): Promise<RetellCall[]> => {
+  try {
+    const response = await fetch(`${API_CONFIG.GET_CALLS}?action=get_calls`);
     if (response.ok) {
       const data = await response.json();
       const fetched = Array.isArray(data) ? data : (data.calls || []);
@@ -41,7 +79,7 @@ export const fetchRetellCalls = async (): Promise<RetellCall[]> => {
     console.warn('Unified database fetch failed, attempting Retell fallback or using cache.');
   }
 
-  // Fallback to Retell API if the custom database is unavailable
+  // Fallback to Retell API directly if webhook fails
   const apiKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
   if (!apiKey || apiKey === 'YOUR_AGENT_API_KEY') {
     return localCalls;
@@ -60,15 +98,11 @@ export const fetchRetellCalls = async (): Promise<RetellCall[]> => {
     if (response.ok) {
       const data = await response.json();
       const calls = Array.isArray(data) ? data : (data.calls || []);
-      localCalls = calls.map((c: any) => ({
-        ...c,
-        call_session_id: c.call_id, // Map for consistency
-        status: c.call_status === 'completed' ? 'completed' : 'in_progress'
-      }));
+      localCalls = calls;
       saveStoredCalls(localCalls);
     }
   } catch (error) {
-    console.error("Failed to fetch from Retell:", error);
+    console.error("Failed to fetch from Retell fallback:", error);
   }
 
   return localCalls;
