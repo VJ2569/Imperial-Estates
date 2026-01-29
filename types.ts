@@ -58,7 +58,7 @@ export interface ApiConfig {
   ADD_PROPERTY: string;
   UPDATE_PROPERTY: string;
   DELETE_PROPERTY: string;
-  GET_CALLS: string; // Renamed from GET_LEADS to GET_CALLS for unified data
+  GET_CALLS: string;
 }
 
 export interface Assistant {
@@ -66,31 +66,33 @@ export interface Assistant {
   name: string;
 }
 
-export interface RetellCall {
-  call_session_id: string; // Primary Key
-  call_id?: string;
-  agent_id?: string;
-  call_status?: string;
-  status: 'pending_call' | 'completed' | 'failed' | 'in_progress';
-  start_timestamp: number;
-  end_timestamp?: number;
-  duration_ms?: number;
-  transcript?: string;
-  recording_url?: string;
-  
-  // Enriched Customer Data (from form or n8n)
-  customer_name?: string;
-  customer_email?: string;
-  customer_number?: string;
+export interface Lead {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
   project_interested?: string;
   budget?: string;
   timeline?: string;
   message?: string;
+  timestamp: string;
+  status: 'new' | 'contacted' | 'closed';
+}
 
+export interface RetellCall {
+  call_id: string;
+  agent_id: string;
+  call_status: string;
+  start_timestamp: number;
+  end_timestamp: number;
+  duration_ms?: number;
+  transcript?: string;
+  recording?: string;
   call_analysis?: {
     call_summary?: string;
     call_successful?: boolean;
     user_sentiment?: string;
   };
+  customer_number?: string;
   metadata?: any;
 }
