@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState, useRef } from 'react';
 import { RetellWebClient } from 'retell-client-js-sdk';
 import { Mic, MicOff, X, Loader2, Volume2 } from 'lucide-react';
@@ -9,27 +10,28 @@ const VoiceAssistant: React.FC = () => {
   const retellClientRef = useRef<RetellWebClient | null>(null);
 
   useEffect(() => {
-    const retellClient = new RetellWebClient();
-    retellClientRef.current = retellClient;
+    // We keep the SDK import but remove branding from the UI
+    const client = new RetellWebClient();
+    retellClientRef.current = client;
 
-    retellClient.on('call_started', () => {
+    client.on('call_started', () => {
       setIsSessionActive(true);
       setIsConnecting(false);
     });
 
-    retellClient.on('call_ended', () => {
+    client.on('call_ended', () => {
       setIsSessionActive(false);
       setIsConnecting(false);
     });
 
-    retellClient.on('error', (error: any) => {
-      console.error('Agent Error:', error);
+    client.on('error', (error: any) => {
+      console.error('AI Link Error:', error);
       setIsConnecting(false);
       setIsSessionActive(false);
     });
 
     return () => {
-      retellClient.stopCall();
+      client.stopCall();
     };
   }, []);
 
@@ -40,7 +42,7 @@ const VoiceAssistant: React.FC = () => {
     const agentId = localStorage.getItem('agent_id') || AGENT_CONFIG.AGENT_ID;
 
     if (!apiKey || apiKey === 'YOUR_AGENT_API_KEY' || !agentId || agentId === 'YOUR_AGENT_ID') {
-       alert("Please configure your Retell API Key and Agent ID in Settings first.");
+       alert("Please configure your Intelligence API Key and AI Unit ID in Settings first.");
        return;
     }
 
@@ -49,7 +51,6 @@ const VoiceAssistant: React.FC = () => {
     } else {
       setIsConnecting(true);
       try {
-          // Retell V2 flow: Create a web call session to get an access token
           const response = await fetch('https://api.retellai.com/v2/create-web-call', {
             method: 'POST',
             headers: {
@@ -63,7 +64,7 @@ const VoiceAssistant: React.FC = () => {
 
           if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to create web call session');
+            throw new Error(errorData.message || 'Failed to initialize AI connection');
           }
 
           const data = await response.json();
@@ -73,8 +74,8 @@ const VoiceAssistant: React.FC = () => {
               accessToken: accessToken,
           });
       } catch (err: any) {
-          console.error("Failed to start agent call:", err);
-          alert(`Connection Error: ${err.message || 'Check your API Key and Agent ID settings.'}`);
+          console.error("AI Bridge Failure:", err);
+          alert(`Handshake Error: ${err.message || 'Check your settings.'}`);
           setIsConnecting(false);
       }
     }
@@ -89,18 +90,18 @@ const VoiceAssistant: React.FC = () => {
               <span className={`relative flex h-3 w-3 rounded-full ${isConnecting ? 'bg-amber-500' : 'bg-emerald-500'}`}>
                 {isConnecting && <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>}
               </span>
-              <span className="font-semibold text-sm">Imperial Voice Agent</span>
+              <span className="font-black text-[10px] uppercase tracking-widest">Imperial Voice Assistant</span>
             </div>
-            <button onClick={() => retellClientRef.current?.stopCall()} className="text-slate-400 hover:text-white"><X size={16} /></button>
+            <button onClick={() => retellClientRef.current?.stopCall()} className="text-slate-400 hover:text-white transition-colors"><X size={16} /></button>
           </div>
-          <div className="h-10 bg-slate-800/50 rounded-lg flex items-center justify-center">
+          <div className="h-12 bg-slate-800/50 rounded-xl flex items-center justify-center border border-slate-700/50">
             {isConnecting ? (
-              <div className="flex items-center gap-2 text-slate-400 text-xs font-bold uppercase tracking-widest">
-                <Loader2 className="animate-spin" size={14} /> Initializing
+              <div className="flex items-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+                <Loader2 className="animate-spin" size={14} /> Protocol Init
               </div>
             ) : (
-              <div className="flex items-center gap-2 text-blue-400 text-xs font-bold uppercase tracking-widest">
-                <Volume2 size={18} className="animate-pulse" /> Live Session
+              <div className="flex items-center gap-2 text-blue-400 text-[10px] font-black uppercase tracking-widest">
+                <Volume2 size={18} className="animate-pulse" /> Active Uplink
               </div>
             )}
           </div>
@@ -112,7 +113,7 @@ const VoiceAssistant: React.FC = () => {
         disabled={isConnecting}
         className={`h-16 w-16 rounded-full shadow-2xl flex items-center justify-center transition-all ${
           isSessionActive ? 'bg-rose-500 scale-110 hover:bg-rose-600' : 'bg-slate-900 hover:bg-slate-800'
-        } ${isConnecting ? 'opacity-50 cursor-not-allowed' : ''}`}
+        } ${isConnecting ? 'opacity-50 cursor-not-allowed shadow-none' : 'hover:scale-105 active:scale-95'}`}
       >
         {isSessionActive ? <MicOff className="text-white" size={28} /> : <Mic className="text-white" size={28} />}
       </button>
