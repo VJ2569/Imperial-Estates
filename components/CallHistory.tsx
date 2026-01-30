@@ -11,16 +11,19 @@ import {
   Search,
   Maximize2,
   Phone,
-  User,
   ShieldCheck,
   Activity,
-  Trash2
+  Trash2,
+  Clock,
+  ArrowRightLeft,
+  DollarSign
 } from 'lucide-react';
 import { 
   fetchVoiceDirectCalls, 
   fetchWebhookCalls, 
   getStoredVoiceCalls,
-  getStoredWebhookCalls 
+  getStoredWebhookCalls,
+  markIdAsDeleted
 } from '../services/retellService';
 import { format, isValid } from 'date-fns';
 
@@ -34,26 +37,19 @@ const CallHistory: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ConsoleTab>('voice');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Technical fields to hide from the inspection modal
-  const BLACKLIST_FIELDS = [
-    'call_id', 
-    'call_type', 
-    'agent_id', 
-    'agent_version', 
-    'agent_name', 
-    'duration_ms', 
-    'data_storage_setting', 
-    'from_number', 
-    'transcript_object', 
-    'transcript_with_tool_calls', 
-    'scrubbed_transcript_with_tool_calls', 
-    'tool_calls'
+  // STRICT WHITELIST for Voice Intelligence Stream
+  const VOICE_WHITELIST = [
+    'call_status',
+    'start_timestamp',
+    'end_timestamp',
+    'disconnection_reason',
+    'to_number',
+    'direction',
+    'duration_display',
+    'cost_display'
   ];
 
   useEffect(() => {
-    // Immediate cache load
-    const cached = activeTab === 'voice' ? getStoredVoiceCalls() : getStoredWebhookCalls();
-    setData(cached);
     loadData();
   }, [activeTab]);
 
@@ -61,15 +57,20 @@ const CallHistory: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
+      // 1. Initial load from local store (pre-filtered for deletions)
+      const cached = activeTab === 'voice' ? getStoredVoiceCalls() : getStoredWebhookCalls();
+      setData(cached);
+
+      // 2. Fetch fresh
       let result: any[] = [];
       if (activeTab === 'voice') {
         result = await fetchVoiceDirectCalls();
       } else {
         result = await fetchWebhookCalls();
       }
-      setData(Array.isArray(result) ? result : []);
+      setData(result);
     } catch (err: any) {
-      setError("Protocol Sync Interrupted: Check your API Configuration and Webhook availability.");
+      setError("Protocol Sync Interrupted: Check your API Configuration.");
     } finally {
       setLoading(false);
     }
@@ -77,26 +78,38 @@ const CallHistory: React.FC = () => {
 
   const handleDeleteRecord = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    
-    const storageKey = activeTab === 'voice' ? 'imperial_voice_calls' : 'imperial_webhook_calls';
-    const newData = data.filter(item => {
-        const itemId = item.id || item.call_id;
-        return itemId !== id;
-    });
+    if (confirm("Permanently remove this session log from local view?")) {
+        markIdAsDeleted(id);
+        setData(prev => prev.filter(item => (item.id || item.call_id) !== id));
+        if (selectedRecord && (selectedRecord.id === id || selectedRecord.call_id === id)) {
+            setSelectedRecord(null);
+        }
+    }
+  };
 
-    setData(newData);
-    localStorage.setItem(storageKey, JSON.stringify(newData));
+  const getISTString = (val: any) => {
+    if (!val) return '---';
+    const d = new Date(val);
+    if (!isValid(d)) return String(val);
+    return d.toLocaleString('en-IN', { 
+        timeZone: 'Asia/Kolkata',
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
   };
 
   const getHeaders = () => {
     if (data.length === 0) return [];
-    
     if (activeTab === 'voice') {
-      return ['call_status', 'start_timestamp', 'customer_number', 'duration_display'];
+      return ['call_status', 'start_timestamp', 'to_number', 'duration_display', 'cost_display'];
     }
-
+    // Webhook leads are fully dynamic
     const allKeys = Array.from(new Set(data.slice(0, 5).flatMap(item => Object.keys(item))));
-    const skip = ['id', 'call_id', 'agent_id', 'metadata', 'transcript', 'recording_url', 'summary', 'call_analysis', '_source_origin', ...BLACKLIST_FIELDS];
+    const skip = ['id', 'call_id', 'agent_id', 'metadata', 'transcript', 'recording_url', 'summary', 'call_analysis', '_source_origin'];
     return allKeys.filter(k => !skip.includes(k.toLowerCase())).slice(0, 5);
   };
 
@@ -108,12 +121,17 @@ const CallHistory: React.FC = () => {
     if (value === null || value === undefined) return '---';
     
     if (key.toLowerCase().includes('timestamp') || key.toLowerCase().includes('date')) {
-      const d = new Date(value);
-      return isValid(d) ? format(d, 'MMM d, p') : String(value);
+      return getISTString(value);
     }
 
     if (key === 'call_status') {
-      return <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${value === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'}`}>{value}</span>;
+      return (
+        <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${
+          value === 'completed' ? 'bg-emerald-100 text-emerald-700' : 'bg-blue-100 text-blue-700'
+        }`}>
+          {value}
+        </span>
+      );
     }
 
     const stringVal = String(value);
@@ -129,12 +147,13 @@ const CallHistory: React.FC = () => {
   });
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto w-full animate-in fade-in duration-700">
+    <div className="p-4 md:p-8 max-w-7xl mx-auto w-full animate-in fade-in duration-700 min-h-screen">
       
+      {/* Console Header */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8 mb-12">
         <div>
           <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Receptionist Console</h2>
-          <div className="flex items-center gap-10 mt-5">
+          <div className="flex items-center gap-10 mt-5 overflow-x-auto no-scrollbar pb-2">
             {[
               { id: 'voice', label: 'Voice Intelligence Stream', icon: Activity },
               { id: 'enquiry', label: 'Enquiry Hub (Webhook)', icon: Database }
@@ -142,7 +161,7 @@ const CallHistory: React.FC = () => {
               <button 
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as ConsoleTab)}
-                className={`flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.25em] pb-3 border-b-2 transition-all ${activeTab === tab.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                className={`flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.25em] pb-3 border-b-2 transition-all whitespace-nowrap ${activeTab === tab.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
               >
                 <tab.icon size={16} />
                 {tab.label}
@@ -159,7 +178,7 @@ const CallHistory: React.FC = () => {
                placeholder="Filter session logs..." 
                value={searchTerm}
                onChange={(e) => setSearchTerm(e.target.value)}
-               className="pl-12 pr-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none w-72 shadow-sm transition-all"
+               className="pl-12 pr-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none w-full sm:w-72 shadow-sm transition-all"
              />
           </div>
           <button onClick={loadData} className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-all shadow-sm active:scale-95">
@@ -175,7 +194,8 @@ const CallHistory: React.FC = () => {
         </div>
       )}
 
-      <div className="bg-white dark:bg-slate-900 rounded-[48px] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden">
+      {/* Main Stream Table */}
+      <div className="bg-white dark:bg-slate-900 rounded-[48px] shadow-sm border border-slate-200 dark:border-slate-800 overflow-hidden mb-20">
         <div className="overflow-x-auto">
           {filteredData.length > 0 ? (
             <table className="w-full text-left border-collapse table-fixed min-w-[1000px]">
@@ -184,39 +204,42 @@ const CallHistory: React.FC = () => {
                   {headers.map(header => (
                     <th key={header} className="px-10 py-6 border-b border-slate-100 dark:border-slate-800">{formatHeader(header)}</th>
                   ))}
-                  <th className="px-10 py-6 text-right border-b border-slate-100 dark:border-slate-800 w-44">Actions</th>
+                  <th className="px-10 py-6 text-right border-b border-slate-100 dark:border-slate-800 w-44">Operations</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                {filteredData.map((item, idx) => (
-                  <tr 
-                    key={item.id || item.call_id || idx} 
-                    onClick={() => setSelectedRecord(item)}
-                    className="hover:bg-blue-50/20 dark:hover:bg-blue-900/10 transition-colors cursor-pointer group h-20"
-                  >
-                    {headers.map(header => (
-                      <td key={header} className="px-10 py-2">
-                        <span className="text-sm font-bold text-slate-700 dark:text-slate-200 block truncate">
-                          {renderCellValue(header, item[header])}
-                        </span>
+                {filteredData.map((item, idx) => {
+                  const id = item.id || item.call_id || `idx-${idx}`;
+                  return (
+                    <tr 
+                      key={id} 
+                      onClick={() => setSelectedRecord(item)}
+                      className="hover:bg-blue-50/20 dark:hover:bg-blue-900/10 transition-colors cursor-pointer group h-20"
+                    >
+                      {headers.map(header => (
+                        <td key={header} className="px-10 py-2">
+                          <span className="text-sm font-bold text-slate-700 dark:text-slate-200 block truncate">
+                            {renderCellValue(header, item[header])}
+                          </span>
+                        </td>
+                      ))}
+                      <td className="px-10 py-2 text-right">
+                         <div className="inline-flex items-center gap-3">
+                            <div className="inline-flex items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 group-hover:bg-blue-600 group-hover:text-white rounded-xl transition-all shadow-sm">
+                               <Maximize2 size={16} />
+                            </div>
+                            <button 
+                              onClick={(e) => handleDeleteRecord(id, e)}
+                              className="inline-flex items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 hover:bg-rose-500 hover:text-white rounded-xl transition-all shadow-sm"
+                              title="Delete Record"
+                            >
+                               <Trash2 size={16} />
+                            </button>
+                         </div>
                       </td>
-                    ))}
-                    <td className="px-10 py-2 text-right">
-                       <div className="inline-flex items-center gap-3">
-                          <div className="inline-flex items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 group-hover:bg-blue-600 group-hover:text-white rounded-xl transition-all shadow-sm">
-                             <Maximize2 size={16} />
-                          </div>
-                          <button 
-                            onClick={(e) => handleDeleteRecord(item.id || item.call_id, e)}
-                            className="inline-flex items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 hover:bg-rose-500 hover:text-white rounded-xl transition-all shadow-sm"
-                            title="Delete Session Log"
-                          >
-                             <Trash2 size={16} />
-                          </button>
-                       </div>
-                    </td>
-                  </tr>
-                ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           ) : (
@@ -238,61 +261,71 @@ const CallHistory: React.FC = () => {
         </div>
       </div>
 
+      {/* Record Inspection Modal */}
       {selectedRecord && (
         <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 z-[100] animate-in fade-in duration-300" onClick={() => setSelectedRecord(null)}>
-          <div className="bg-white dark:bg-slate-900 rounded-[56px] max-w-5xl w-full max-h-[92vh] flex flex-col shadow-3xl overflow-hidden border border-slate-200 dark:border-slate-800" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-slate-900 rounded-[56px] max-w-6xl w-full max-h-[92vh] flex flex-col shadow-3xl overflow-hidden border border-slate-200 dark:border-slate-800" onClick={e => e.stopPropagation()}>
              
-             <div className="p-12 pb-8 flex justify-between items-start border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
+             {/* Modal Header */}
+             <div className="p-10 pb-8 flex justify-between items-start border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
                 <div className="flex items-center gap-7">
-                   <div className="w-20 h-20 bg-blue-600 rounded-[30px] flex items-center justify-center text-white shadow-2xl shadow-blue-500/30">
-                      {activeTab === 'voice' ? <Activity size={36} /> : <Database size={36} />}
+                   <div className="w-16 h-16 bg-blue-600 rounded-[24px] flex items-center justify-center text-white shadow-2xl">
+                      {activeTab === 'voice' ? <Activity size={28} /> : <Database size={28} />}
                    </div>
                    <div>
-                      <h3 className="font-black text-3xl text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Record Inspection</h3>
-                      <div className="flex items-center gap-4 mt-4">
-                         <span className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-100 text-blue-700">
-                           {activeTab === 'voice' ? 'Direct Intelligence API' : 'Operational Webhook'}
+                      <h3 className="font-black text-2xl text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Intelligence Inspection</h3>
+                      <div className="flex items-center gap-4 mt-3">
+                         <span className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-blue-100 text-blue-700">
+                           {activeTab === 'voice' ? 'Voice Intelligence Stream' : 'Operational Webhook'}
                          </span>
                          <span className="text-slate-300">•</span>
-                         <span className="text-xs font-bold text-slate-500">REF: {selectedRecord.call_id || selectedRecord.id || '---'}</span>
+                         <span className="text-xs font-bold text-slate-500">REF: {selectedRecord.id || selectedRecord.call_id || '---'}</span>
                       </div>
                    </div>
                 </div>
-                <button onClick={() => setSelectedRecord(null)} className="p-4 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 rounded-full border border-slate-100 dark:border-slate-700 transition-all active:scale-90"><X size={24} /></button>
+                <button onClick={() => setSelectedRecord(null)} className="p-3 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 rounded-full border border-slate-100 dark:border-slate-700 transition-all active:scale-90"><X size={20} /></button>
              </div>
 
-             <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+             {/* Modal Body */}
+             <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                    
+                   {/* Left Column: Metadata Whitelist */}
                    <div className="space-y-8">
                       <div>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Core Telemetry</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Standard Telemetry (IST)</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                            {Object.entries(selectedRecord).map(([key, value]) => {
-                             const lowerKey = key.toLowerCase();
-                             const isComplex = typeof value === 'object' || Array.isArray(value);
-                             const isBlacklisted = BLACKLIST_FIELDS.includes(lowerKey);
-                             const isHandledElsewhere = ['transcript', 'summary', 'recording_url', 'recording'].includes(lowerKey);
+                             // Only show whitelist for voice tab
+                             if (activeTab === 'voice' && !VOICE_WHITELIST.includes(key)) return null;
                              
-                             if (isBlacklisted || isComplex || isHandledElsewhere || key.startsWith('_')) return null;
+                             // Skip complex or handle-elsewhere fields
+                             if (typeof value === 'object' || Array.isArray(value) || key.startsWith('_') || ['transcript', 'summary', 'recording_url', 'recording'].includes(key)) return null;
                              
+                             const icon = key.includes('timestamp') ? <Clock size={12}/> : key.includes('number') ? <Phone size={12}/> : key.includes('direction') ? <ArrowRightLeft size={12}/> : key.includes('cost') ? <DollarSign size={12}/> : null;
+
                              return (
-                               <div key={key} className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-100 dark:border-slate-800">
-                                  <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">{formatHeader(key)}</span>
-                                  <span className="text-sm font-bold text-slate-900 dark:text-white break-words">{String(value)}</span>
+                               <div key={key} className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 group hover:border-blue-500/50 transition-colors">
+                                  <span className="flex items-center gap-1.5 text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5">
+                                    {icon}{formatHeader(key)}
+                                  </span>
+                                  <span className="text-sm font-bold text-slate-900 dark:text-white break-words">
+                                    {key.includes('timestamp') ? getISTString(value) : String(value)}
+                                  </span>
                                </div>
                              );
                            })}
                         </div>
                       </div>
 
+                      {/* Media Vault Section */}
                       {(selectedRecord.recording_url || selectedRecord.recording) && (
                          <div className="bg-emerald-50 dark:bg-emerald-900/10 p-8 rounded-[40px] border border-emerald-100 dark:border-emerald-800/30">
                             <div className="flex items-center gap-4 mb-6">
                                <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/30"><Phone size={24} /></div>
                                <div>
                                   <h4 className="font-black text-slate-900 dark:text-white uppercase text-sm">Media Vault</h4>
-                                  <p className="text-xs text-emerald-600 font-bold uppercase tracking-widest">Recording Active</p>
+                                  <p className="text-xs text-emerald-600 font-bold uppercase tracking-widest">Recording Synchronized</p>
                                </div>
                             </div>
                             <a 
@@ -301,12 +334,13 @@ const CallHistory: React.FC = () => {
                               rel="noreferrer"
                               className="w-full flex items-center justify-center gap-3 py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-500/20 active:scale-95"
                             >
-                               <Play size={18} fill="currentColor" /> Play Session
+                               <Play size={18} fill="currentColor" /> Play Intelligence File
                             </a>
                          </div>
                       )}
                    </div>
 
+                   {/* Right Column: Narrative Whitelist */}
                    <div className="space-y-10">
                       {(selectedRecord.transcript) && (
                          <div className="flex flex-col">
@@ -329,12 +363,28 @@ const CallHistory: React.FC = () => {
                             </div>
                          </div>
                       )}
+
+                      {/* Fallback for Webhook dynamically added content if it's long text */}
+                      {activeTab === 'enquiry' && Object.entries(selectedRecord).map(([key, value]) => {
+                         if (String(value).length > 80 && !key.startsWith('_') && !['transcript', 'summary'].includes(key)) {
+                            return (
+                               <div key={key}>
+                                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-5">{formatHeader(key)}</p>
+                                  <div className="bg-slate-50 dark:bg-slate-800 p-8 rounded-[40px] border border-slate-100 dark:border-slate-800 text-sm leading-relaxed text-slate-600 dark:text-slate-400 whitespace-pre-wrap font-medium shadow-inner">
+                                     {String(value)}
+                                  </div>
+                               </div>
+                            );
+                         }
+                         return null;
+                      })}
                    </div>
                 </div>
              </div>
 
-             <div className="p-12 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-end">
-                <button onClick={() => setSelectedRecord(null)} className="px-12 py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-[24px] font-black text-xs uppercase tracking-[0.25em] transition-all hover:scale-105 active:scale-95 shadow-2xl">Return to Stream</button>
+             {/* Modal Footer */}
+             <div className="p-10 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 flex justify-end">
+                <button onClick={() => setSelectedRecord(null)} className="px-12 py-5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-[24px] font-black text-[10px] uppercase tracking-[0.25em] transition-all hover:scale-105 active:scale-95 shadow-2xl">Return to Stream</button>
              </div>
           </div>
         </div>
