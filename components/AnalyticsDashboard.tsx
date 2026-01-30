@@ -30,7 +30,6 @@ const AnalyticsDashboard: React.FC = () => {
   }, []);
 
   const loadAllData = async () => {
-    // 1. Instant load from local cache to avoid empty screen
     const cachedProps = getStoredProperties();
     const cachedCalls = getStoredVoiceCalls();
     
@@ -43,7 +42,6 @@ const AnalyticsDashboard: React.FC = () => {
         setLoading(false);
     }
 
-    // 2. Refresh from network (Direct API & Webhooks)
     setSyncStatus('syncing');
     try {
       const [propData, callData] = await Promise.all([
@@ -157,8 +155,6 @@ const AnalyticsDashboard: React.FC = () => {
 
   return (
     <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-12 w-full pb-32 animate-in fade-in duration-700">
-      
-      {/* Dashboard Top Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
          <div>
             <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Operational Intelligence</h2>
@@ -168,30 +164,24 @@ const AnalyticsDashboard: React.FC = () => {
            {syncStatus === 'syncing' ? (
              <div className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl border border-blue-100 dark:border-blue-800/50">
                 <RefreshCcw size={14} className="animate-spin" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Live API Syncing</span>
-             </div>
-           ) : syncStatus === 'error' ? (
-             <div className="flex items-center gap-2 px-5 py-2.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-2xl border border-rose-100 dark:border-rose-800/50">
-                <AlertTriangle size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Sync Error</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Live Sync Active</span>
              </div>
            ) : (
              <button onClick={loadAllData} className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 transition-all active:scale-95">
                 <RefreshCcw size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Refresh Intel</span>
+                <span className="text-[10px] font-black uppercase tracking-widest">Refresh Intelligence</span>
              </button>
            )}
          </div>
       </div>
 
-      {/* Main Analytical Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
          <div className="bg-white dark:bg-slate-900 p-10 rounded-[48px] border border-slate-100 dark:border-slate-800 shadow-sm transition-all hover:shadow-xl">
             <div className="flex items-center justify-between mb-8">
                <div>
                   <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
                       <Activity size={22} className="text-blue-500"/>
-                      Voice Intelligence Traffic
+                      Voice Engagement Traffic
                   </h3>
                   <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Daily interaction load (30 Days)</p>
                </div>
@@ -227,7 +217,7 @@ const AnalyticsDashboard: React.FC = () => {
                <div>
                   <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
                       <TrendingUp size={22} className="text-emerald-500"/>
-                      Deployment Trends
+                      Portfolio Deployment
                   </h3>
                   <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Inventory distribution over time</p>
                </div>
@@ -249,14 +239,13 @@ const AnalyticsDashboard: React.FC = () => {
          </div>
       </div>
 
-      {/* Grid Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
           <StatCard icon={AlertTriangle} label="Vacancy Risk" value={vacancyRiskScore} subtext="/ 100" colorClass={getRiskColor(vacancyRiskScore).replace('text-', 'bg-')} />
           <StatCard icon={Clock} label="Avg Velocity" value={`${avgVacancyDuration}d`} colorClass="bg-blue-500" />
-          <StatCard icon={Zap} label="Weekly Engagement" value={recentCalls} subtext="Direct API" colorClass="bg-emerald-500" />
-          <StatCard icon={Phone} label="Voice Matrix" value={calls.length} colorClass="bg-purple-500" />
+          <StatCard icon={Zap} label="Recent Reach" value={recentCalls} subtext="Direct Intel" colorClass="bg-emerald-500" />
+          <StatCard icon={Phone} label="Voice Log" value={calls.length} colorClass="bg-purple-500" />
           <StatCard icon={DollarSign} label="Portfolio Val" value={`₹${(totalValue / 10000000).toFixed(1)}Cr`} colorClass="bg-amber-500" />
-          <StatCard icon={Home} label="Live Projects" value={properties.length} colorClass="bg-slate-500" />
+          <StatCard icon={Home} label="Active Assets" value={properties.length} colorClass="bg-slate-500" />
       </div>
     </div>
   );
