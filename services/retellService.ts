@@ -4,6 +4,7 @@ import { API_CONFIG, AGENT_CONFIG } from '../constants';
 const STORAGE_KEY_WEBHOOK_CALLS = 'imperial_webhook_calls';
 const STORAGE_KEY_VOICE_CALLS = 'imperial_voice_calls';
 const STORAGE_KEY_LEADS = 'imperial_leads';
+const STORAGE_KEY_DELETED_IDS = 'imperial_deleted_session_ids';
 
 const loadStored = (key: string): any[] => {
   try {
@@ -20,19 +21,35 @@ const saveStored = (key: string, data: any[]) => {
   } catch (error) {}
 };
 
-export const getStoredVoiceCalls = (): any[] => loadStored(STORAGE_KEY_VOICE_CALLS);
-export const getStoredWebhookCalls = (): any[] => loadStored(STORAGE_KEY_WEBHOOK_CALLS);
+export const getStoredVoiceCalls = (): any[] => {
+  const calls = loadStored(STORAGE_KEY_VOICE_CALLS);
+  const deletedIds = loadStored(STORAGE_KEY_DELETED_IDS);
+  return calls.filter(c => !deletedIds.includes(c.id || c.call_id));
+};
+
+export const getStoredWebhookCalls = (): any[] => {
+  const calls = loadStored(STORAGE_KEY_WEBHOOK_CALLS);
+  const deletedIds = loadStored(STORAGE_KEY_DELETED_IDS);
+  return calls.filter(c => !deletedIds.includes(c.id || c.call_id));
+};
+
+export const markIdAsDeleted = (id: string) => {
+  const deleted = loadStored(STORAGE_KEY_DELETED_IDS);
+  if (!deleted.includes(id)) {
+    saveStored(STORAGE_KEY_DELETED_IDS, [...deleted, id]);
+  }
+};
+
 export const getStoredLeads = (): any[] => loadStored(STORAGE_KEY_LEADS);
 
 /**
- * Fetches enriched call data directly from the Voice Intelligence API.
+ * Fetches enriched call data directly from the Voice AI API.
  */
 export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
   try {
     const apiKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
     
     if (!apiKey || apiKey.trim() === '' || apiKey === 'YOUR_AGENT_API_KEY') {
-      console.warn('Voice AI API Key not configured. Please visit Settings.');
       return getStoredVoiceCalls();
     }
 
@@ -51,17 +68,18 @@ export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
       const normalizedData = rawData.map((call: any) => ({
         ...call,
         _source_origin: 'voice_direct_api',
+        // Standardization
         start_timestamp: typeof call.start_timestamp === 'string' ? new Date(call.start_timestamp).getTime() : call.start_timestamp,
-        duration_display: call.duration_ms ? `${Math.floor(call.duration_ms / 60000)}m ${Math.floor((call.duration_ms % 60000) / 1000)}s` : '---'
+        end_timestamp: typeof call.end_timestamp === 'string' ? new Date(call.end_timestamp).getTime() : call.end_timestamp,
+        duration_display: call.duration_ms ? `${Math.floor(call.duration_ms / 60000)}m ${Math.floor((call.duration_ms % 60000) / 1000)}s` : '---',
+        cost_display: call.combined_cost ? `₹${(call.combined_cost * 83).toFixed(2)}` : '---' // Rough USD to INR conversion if needed
       }));
 
       saveStored(STORAGE_KEY_VOICE_CALLS, normalizedData);
-      return normalizedData;
-    } else {
-      console.error('Voice API error:', response.status);
+      return getStoredVoiceCalls();
     }
   } catch (error) {
-    console.error('Network error reaching Voice AI API:', error);
+    console.error('Network sync failure');
   }
   return getStoredVoiceCalls();
 };
@@ -77,10 +95,10 @@ export const fetchWebhookCalls = async (): Promise<any[]> => {
       const rawData = Array.isArray(data) ? data : (data.calls || data.data || []);
       const normalizedData = rawData.map((call: any) => ({ ...call, _source_origin: 'webhook_n8n' }));
       saveStored(STORAGE_KEY_WEBHOOK_CALLS, normalizedData);
-      return normalizedData;
+      return getStoredWebhookCalls();
     }
   } catch (error) {
-    console.warn('Webhook call fetch failed');
+    console.warn('Webhook sync failure');
   }
   return getStoredWebhookCalls();
 };
