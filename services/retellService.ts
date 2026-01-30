@@ -25,8 +25,7 @@ export const getStoredWebhookCalls = (): any[] => loadStored(STORAGE_KEY_WEBHOOK
 export const getStoredLeads = (): any[] => loadStored(STORAGE_KEY_LEADS);
 
 /**
- * Fetches enriched call data directly from the Voice AI API.
- * Updated to use POST /v2/list-calls as requested.
+ * Fetches enriched call data directly from the Voice Intelligence API.
  */
 export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
   try {
@@ -37,58 +36,29 @@ export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
       return getStoredVoiceCalls();
     }
 
-    // Using POST as explicitly requested
     const response = await fetch('https://api.retellai.com/v2/list-calls', {
-      method: 'POST',
+      method: 'GET',
       headers: { 
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json'
-      },
-      // Some APIs require an empty body for POST requests to list endpoints
-      body: JSON.stringify({}) 
+      }
     });
 
     if (response.ok) {
       const data = await response.json();
-      // Handle both direct array and wrapped response { calls: [...] }
       const rawData = Array.isArray(data) ? data : (data.calls || data.data || []);
       
       const normalizedData = rawData.map((call: any) => ({
         ...call,
         _source_origin: 'voice_direct_api',
-        // Ensure timestamp is a number for reliable sorting/charting
         start_timestamp: typeof call.start_timestamp === 'string' ? new Date(call.start_timestamp).getTime() : call.start_timestamp,
-        // Format duration for the table view
         duration_display: call.duration_ms ? `${Math.floor(call.duration_ms / 60000)}m ${Math.floor((call.duration_ms % 60000) / 1000)}s` : '---'
       }));
 
       saveStored(STORAGE_KEY_VOICE_CALLS, normalizedData);
       return normalizedData;
     } else {
-      // If POST fails, fallback to GET to ensure data availability or log the error
-      console.error('Voice API POST error:', response.status);
-      
-      // Attempting GET as a secondary safety measure if POST is rejected by the server
-      const getResponse = await fetch('https://api.retellai.com/v2/list-calls', {
-        method: 'GET',
-        headers: { 
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (getResponse.ok) {
-        const getData = await getResponse.json();
-        const rawGetData = Array.isArray(getData) ? getData : (getData.calls || getData.data || []);
-        const normalizedGetData = rawGetData.map((call: any) => ({
-          ...call,
-          _source_origin: 'voice_direct_api',
-          start_timestamp: typeof call.start_timestamp === 'string' ? new Date(call.start_timestamp).getTime() : call.start_timestamp,
-          duration_display: call.duration_ms ? `${Math.floor(call.duration_ms / 60000)}m ${Math.floor((call.duration_ms % 60000) / 1000)}s` : '---'
-        }));
-        saveStored(STORAGE_KEY_VOICE_CALLS, normalizedGetData);
-        return normalizedGetData;
-      }
+      console.error('Voice API error:', response.status);
     }
   } catch (error) {
     console.error('Network error reaching Voice AI API:', error);
