@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Play, 
   FileText, 
@@ -16,19 +16,16 @@ import {
   Trash2,
   Clock,
   ArrowRightLeft,
-  DollarSign,
-  User,
-  Tags
+  DollarSign
 } from 'lucide-react';
 import { 
   fetchVoiceDirectCalls, 
   fetchWebhookCalls, 
   getStoredVoiceCalls,
   getStoredWebhookCalls,
-  markIdAsDeleted,
-  getDeletedIds
+  markIdAsDeleted
 } from '../services/retellService';
-import { isValid } from 'date-fns';
+import { format, isValid } from 'date-fns';
 
 type ConsoleTab = 'voice' | 'enquiry';
 
@@ -40,10 +37,8 @@ const CallHistory: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ConsoleTab>('voice');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // STRICT WHITELIST for Voice Intelligence Stream Modal & Table
+  // STRICT WHITELIST for Voice Intelligence Stream
   const VOICE_WHITELIST = [
-    'customer_name',
-    'enquiry_type',
     'call_status',
     'start_timestamp',
     'end_timestamp',
@@ -54,41 +49,41 @@ const CallHistory: React.FC = () => {
     'cost_display'
   ];
 
-  const loadData = useCallback(async (isSilent = false) => {
-    if (!isSilent) setLoading(true);
+  useEffect(() => {
+    loadData();
+  }, [activeTab]);
+
+  const loadData = async () => {
+    setLoading(true);
     setError(null);
     try {
-      const deletedIds = getDeletedIds();
+      // 1. Initial load from local store (pre-filtered for deletions)
+      const cached = activeTab === 'voice' ? getStoredVoiceCalls() : getStoredWebhookCalls();
+      setData(cached);
+
+      // 2. Fetch fresh
       let result: any[] = [];
-      
       if (activeTab === 'voice') {
         result = await fetchVoiceDirectCalls();
       } else {
         result = await fetchWebhookCalls();
       }
-      
-      // Filter out deleted items locally just in case
-      const filtered = result.filter(item => !deletedIds.includes(item.id || item.call_id));
-      setData(filtered);
+      setData(result);
     } catch (err: any) {
       setError("Protocol Sync Interrupted: Check your API Configuration.");
     } finally {
-      if (!isSilent) setLoading(false);
+      setLoading(false);
     }
-  }, [activeTab]);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  };
 
   const handleDeleteRecord = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (confirm("Are you sure you want to permanently remove this session from your dashboard?")) {
-      markIdAsDeleted(id);
-      setData(prev => prev.filter(item => (item.id || item.call_id) !== id));
-      if (selectedRecord && (selectedRecord.id === id || selectedRecord.call_id === id)) {
-        setSelectedRecord(null);
-      }
+    if (confirm("Permanently remove this session log from local view?")) {
+        markIdAsDeleted(id);
+        setData(prev => prev.filter(item => (item.id || item.call_id) !== id));
+        if (selectedRecord && (selectedRecord.id === id || selectedRecord.call_id === id)) {
+            setSelectedRecord(null);
+        }
     }
   };
 
@@ -110,18 +105,15 @@ const CallHistory: React.FC = () => {
   const getHeaders = () => {
     if (data.length === 0) return [];
     if (activeTab === 'voice') {
-      // Whitelisted headers for Voice tab
-      return ['customer_name', 'enquiry_type', 'call_status', 'start_timestamp', 'duration_display', 'cost_display'];
+      return ['call_status', 'start_timestamp', 'to_number', 'duration_display', 'cost_display'];
     }
-    // Webhook leads are fully dynamic but filtered
+    // Webhook leads are fully dynamic
     const allKeys = Array.from(new Set(data.slice(0, 5).flatMap(item => Object.keys(item))));
     const skip = ['id', 'call_id', 'agent_id', 'metadata', 'transcript', 'recording_url', 'summary', 'call_analysis', '_source_origin'];
     return allKeys.filter(k => !skip.includes(k.toLowerCase())).slice(0, 5);
   };
 
   const formatHeader = (key: string) => {
-    if (key === 'customer_name') return 'NAME';
-    if (key === 'enquiry_type') return 'ENQUIRY TYPE';
     return key.replace(/_/g, ' ').toUpperCase();
   };
 
@@ -143,7 +135,7 @@ const CallHistory: React.FC = () => {
     }
 
     const stringVal = String(value);
-    return stringVal.length > 30 ? stringVal.substring(0, 27) + '...' : stringVal;
+    return stringVal.length > 35 ? stringVal.substring(0, 32) + '...' : stringVal;
   };
 
   const headers = getHeaders();
@@ -189,7 +181,7 @@ const CallHistory: React.FC = () => {
                className="pl-12 pr-6 py-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-xs font-bold focus:ring-2 focus:ring-blue-500 outline-none w-full sm:w-72 shadow-sm transition-all"
              />
           </div>
-          <button onClick={() => loadData()} className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-all shadow-sm active:scale-95">
+          <button onClick={loadData} className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-slate-600 dark:text-slate-300 hover:bg-slate-50 transition-all shadow-sm active:scale-95">
             <RefreshCcw size={20} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
@@ -239,7 +231,7 @@ const CallHistory: React.FC = () => {
                             <button 
                               onClick={(e) => handleDeleteRecord(id, e)}
                               className="inline-flex items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 hover:bg-rose-500 hover:text-white rounded-xl transition-all shadow-sm"
-                              title="Permanently Remove Log"
+                              title="Delete Record"
                             >
                                <Trash2 size={16} />
                             </button>
@@ -256,7 +248,7 @@ const CallHistory: React.FC = () => {
                 <>
                   <Inbox className="mx-auto text-slate-100 dark:text-slate-800 mb-8" size={80} />
                   <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3 uppercase tracking-tight">Stream Standby</h3>
-                  <p className="text-slate-500 text-sm max-w-sm mx-auto font-medium">No records found. Data will appear here once calls are received.</p>
+                  <p className="text-slate-500 text-sm max-w-sm mx-auto font-medium">No records matching your search or configured APIs were found.</p>
                 </>
               ) : (
                 <div className="flex flex-col items-center gap-8">
@@ -271,13 +263,13 @@ const CallHistory: React.FC = () => {
 
       {/* Record Inspection Modal */}
       {selectedRecord && (
-        <div className="fixed inset-0 bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-6 z-[100] animate-in fade-in duration-300" onClick={() => setSelectedRecord(null)}>
+        <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-2xl flex items-center justify-center p-6 z-[100] animate-in fade-in duration-300" onClick={() => setSelectedRecord(null)}>
           <div className="bg-white dark:bg-slate-900 rounded-[56px] max-w-6xl w-full max-h-[92vh] flex flex-col shadow-3xl overflow-hidden border border-slate-200 dark:border-slate-800" onClick={e => e.stopPropagation()}>
              
              {/* Modal Header */}
              <div className="p-10 pb-8 flex justify-between items-start border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
                 <div className="flex items-center gap-7">
-                   <div className="w-16 h-16 bg-blue-600 rounded-[24px] flex items-center justify-center text-white shadow-2xl shadow-blue-500/30">
+                   <div className="w-16 h-16 bg-blue-600 rounded-[24px] flex items-center justify-center text-white shadow-2xl">
                       {activeTab === 'voice' ? <Activity size={28} /> : <Database size={28} />}
                    </div>
                    <div>
@@ -291,7 +283,7 @@ const CallHistory: React.FC = () => {
                       </div>
                    </div>
                 </div>
-                <button onClick={() => setSelectedRecord(null)} className="p-3 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 rounded-full border border-slate-100 dark:border-slate-700 transition-all active:scale-90 shadow-sm"><X size={20} /></button>
+                <button onClick={() => setSelectedRecord(null)} className="p-3 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 rounded-full border border-slate-100 dark:border-slate-700 transition-all active:scale-90"><X size={20} /></button>
              </div>
 
              {/* Modal Body */}
@@ -304,18 +296,13 @@ const CallHistory: React.FC = () => {
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Standard Telemetry (IST)</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                            {Object.entries(selectedRecord).map(([key, value]) => {
-                             // Whitelist filtering for voice tab
+                             // Only show whitelist for voice tab
                              if (activeTab === 'voice' && !VOICE_WHITELIST.includes(key)) return null;
                              
-                             // Generic filters for both tabs
+                             // Skip complex or handle-elsewhere fields
                              if (typeof value === 'object' || Array.isArray(value) || key.startsWith('_') || ['transcript', 'summary', 'recording_url', 'recording'].includes(key)) return null;
                              
-                             const icon = key.includes('timestamp') ? <Clock size={12}/> : 
-                                          key.includes('number') ? <Phone size={12}/> : 
-                                          key.includes('direction') ? <ArrowRightLeft size={12}/> : 
-                                          key.includes('cost') ? <DollarSign size={12}/> : 
-                                          key.includes('name') ? <User size={12}/> : 
-                                          key.includes('type') ? <Tags size={12}/> : null;
+                             const icon = key.includes('timestamp') ? <Clock size={12}/> : key.includes('number') ? <Phone size={12}/> : key.includes('direction') ? <ArrowRightLeft size={12}/> : key.includes('cost') ? <DollarSign size={12}/> : null;
 
                              return (
                                <div key={key} className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 group hover:border-blue-500/50 transition-colors">
@@ -338,7 +325,7 @@ const CallHistory: React.FC = () => {
                                <div className="p-3 bg-emerald-600 text-white rounded-2xl shadow-lg shadow-emerald-500/30"><Phone size={24} /></div>
                                <div>
                                   <h4 className="font-black text-slate-900 dark:text-white uppercase text-sm">Media Vault</h4>
-                                  <p className="text-xs text-emerald-600 font-bold uppercase tracking-widest">Recording Active</p>
+                                  <p className="text-xs text-emerald-600 font-bold uppercase tracking-widest">Recording Synchronized</p>
                                </div>
                             </div>
                             <a 
@@ -377,20 +364,9 @@ const CallHistory: React.FC = () => {
                          </div>
                       )}
 
-                      {/* Display sentiment if available (suggested pull) */}
-                      {selectedRecord.call_analysis?.user_sentiment && (
-                         <div className="bg-slate-50 dark:bg-slate-800/60 p-6 rounded-[30px] border border-slate-100 dark:border-slate-800">
-                             <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-3">Audience Sentiment</p>
-                             <div className="flex items-center gap-2 text-sm font-bold text-slate-800 dark:text-slate-200">
-                                <Activity size={16} className="text-blue-500" />
-                                <span className="capitalize">{selectedRecord.call_analysis.user_sentiment}</span>
-                             </div>
-                         </div>
-                      )}
-
-                      {/* Webhook dynamic content fallback */}
+                      {/* Fallback for Webhook dynamically added content if it's long text */}
                       {activeTab === 'enquiry' && Object.entries(selectedRecord).map(([key, value]) => {
-                         if (String(value).length > 60 && !key.startsWith('_') && !['transcript', 'summary'].includes(key)) {
+                         if (String(value).length > 80 && !key.startsWith('_') && !['transcript', 'summary'].includes(key)) {
                             return (
                                <div key={key}>
                                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-5">{formatHeader(key)}</p>
@@ -418,7 +394,6 @@ const CallHistory: React.FC = () => {
         .custom-scrollbar-dark::-webkit-scrollbar { width: 5px; }
         .custom-scrollbar-dark::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
         .custom-scrollbar-dark::-webkit-scrollbar-thumb:hover { background: #475569; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
       `}</style>
     </div>
   );
