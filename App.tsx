@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Check, Menu, X as XIcon } from 'lucide-react';
@@ -6,7 +7,6 @@ import PropertyManager from './components/PropertyManager';
 import CallHistory from './components/CallHistory';
 import AnalyticsDashboard from './components/AnalyticsDashboard';
 import Settings from './components/Settings';
-import VoiceAssistant from './components/VoiceAssistant';
 import AdminGuard from './components/AdminGuard';
 
 // Layout Component that handles Sidebar and common UI
@@ -98,7 +98,6 @@ const DashboardLayout = ({ isClientView }: { isClientView: boolean }) => {
         )}
         
         {renderContent()}
-        <VoiceAssistant />
       </main>
     </div>
   );
@@ -108,7 +107,7 @@ const App = () => {
   return (
     <Routes>
       <Route 
-        path="/aegissa" 
+        path="/admin" 
         element={
           <AdminGuard>
             <DashboardLayout isClientView={false} />
@@ -116,7 +115,7 @@ const App = () => {
         } 
       />
       <Route path="/client" element={<DashboardLayout isClientView={true} />} />
-      <Route path="/" element={<Navigate to="/aegissa" replace />} />
+      <Route path="/" element={<Navigate to="/admin" replace />} />
     </Routes>
   );
 };
