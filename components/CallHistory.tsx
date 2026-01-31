@@ -103,14 +103,15 @@ const CallHistory: React.FC = () => {
     });
   };
 
-  const getHeaders = () => {
+  const getHeaders = (): string[] => {
     if (data.length === 0) return [];
     if (activeTab === 'voice') {
       // Whitelisted headers for Voice tab
       return ['call_status', 'start_timestamp', 'duration_display', 'cost_display'];
     }
     // Webhook leads are fully dynamic but filtered for metadata
-    const allKeys = Array.from(new Set(data.slice(0, 5).flatMap(item => Object.keys(item))));
+    // Cast allKeys to string[] to resolve 'unknown' type inference on line 115 (and 158)
+    const allKeys = Array.from(new Set(data.slice(0, 5).flatMap(item => Object.keys(item || {})))) as string[];
     const skip = ['id', 'call_id', 'agent_id', 'metadata', 'transcript', 'recording_url', 'summary', 'call_analysis', '_source_origin'];
     return allKeys.filter(k => !skip.includes(k.toLowerCase())).slice(0, 5);
   };
@@ -221,6 +222,7 @@ const CallHistory: React.FC = () => {
                       {headers.map(header => (
                         <td key={header} className="px-10 py-2">
                           <span className="text-sm font-bold text-slate-700 dark:text-slate-200 block truncate">
+                            {/* Explicitly using header string for dynamic indexing on Line 158 */}
                             {renderCellValue(header, item[header])}
                           </span>
                         </td>
@@ -297,7 +299,8 @@ const CallHistory: React.FC = () => {
                       <div>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Standard Telemetry (IST)</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                           {Object.entries(selectedRecord).map(([key, value]) => {
+                           {/* Cast selectedRecord to Record<string, any> to fix 'unknown' key inference on line 207 & 224 */}
+                           {Object.entries(selectedRecord as Record<string, any>).map(([key, value]) => {
                              // Whitelist filtering for voice tab
                              if (activeTab === 'voice' && !VOICE_WHITELIST.includes(key)) return null;
                              
@@ -370,7 +373,7 @@ const CallHistory: React.FC = () => {
                       )}
 
                       {/* Webhook dynamic content fallback */}
-                      {activeTab === 'enquiry' && Object.entries(selectedRecord).map(([key, value]) => {
+                      {activeTab === 'enquiry' && Object.entries(selectedRecord as Record<string, any>).map(([key, value]) => {
                          if (String(value).length > 60 && !key.startsWith('_') && !['transcript', 'summary'].includes(key)) {
                             return (
                                <div key={key}>
