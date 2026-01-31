@@ -76,21 +76,14 @@ export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
       const rawData = Array.isArray(data) ? data : (data.calls || data.data || []);
       
       const normalizedData = rawData.map((call: any) => {
-        // Attempt to find custom analysis data for name and enquiry type
-        const analysis = call.call_analysis || {};
-        const customData = analysis.custom_analysis_data || {};
-        
         return {
           ...call,
           _source_origin: 'voice_direct_api',
-          // Extracted Fields (Suggested pull: name, enquiry type)
-          customer_name: customData.name || call.metadata?.name || '---',
-          enquiry_type: customData.enquiry_type || call.metadata?.enquiry_type || '---',
           // Standardization
           start_timestamp: typeof call.start_timestamp === 'string' ? new Date(call.start_timestamp).getTime() : call.start_timestamp,
           end_timestamp: typeof call.end_timestamp === 'string' ? new Date(call.end_timestamp).getTime() : call.end_timestamp,
           duration_display: call.duration_ms ? `${Math.floor(call.duration_ms / 60000)}m ${Math.floor((call.duration_ms % 60000) / 1000)}s` : '---',
-          cost_display: call.combined_cost ? `₹${(call.combined_cost * 84).toFixed(2)}` : '---' // Rough USD to INR conversion
+          cost_display: call.combined_cost ? `₹${(call.combined_cost * 84).toFixed(2)}` : '---'
         };
       });
 
