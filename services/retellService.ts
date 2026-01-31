@@ -41,13 +41,13 @@ export const markIdAsDeleted = (id: string) => {
 export const getStoredVoiceCalls = (): any[] => {
   const calls = loadStored(STORAGE_KEY_VOICE_CALLS);
   const deletedIds = getDeletedIds();
-  return calls.filter(c => !deletedIds.includes(c.id || c.call_id));
+  return calls.filter((c: any) => !deletedIds.includes(c.id || c.call_id));
 };
 
 export const getStoredWebhookCalls = (): any[] => {
   const calls = loadStored(STORAGE_KEY_WEBHOOK_CALLS);
   const deletedIds = getDeletedIds();
-  return calls.filter(c => !deletedIds.includes(c.id || c.call_id));
+  return calls.filter((c: any) => !deletedIds.includes(c.id || c.call_id));
 };
 
 export const getStoredLeads = (): any[] => loadStored(STORAGE_KEY_LEADS);
@@ -74,31 +74,31 @@ export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
     if (response.ok) {
       const data = await response.json();
       const rawData = Array.isArray(data) ? data : (data.calls || data.data || []);
-      const deletedIds = getDeletedIds();
       
       const normalizedData = rawData.map((call: any) => {
-        // Extract Name and Enquiry Type from analysis or metadata
+        // Attempt to find custom analysis data for name and enquiry type
         const analysis = call.call_analysis || {};
         const customData = analysis.custom_analysis_data || {};
         
         return {
           ...call,
           _source_origin: 'voice_direct_api',
+          // Extracted Fields (Suggested pull: name, enquiry type)
           customer_name: customData.name || call.metadata?.name || '---',
           enquiry_type: customData.enquiry_type || call.metadata?.enquiry_type || '---',
-          // IST logic handled in UI component
+          // Standardization
           start_timestamp: typeof call.start_timestamp === 'string' ? new Date(call.start_timestamp).getTime() : call.start_timestamp,
           end_timestamp: typeof call.end_timestamp === 'string' ? new Date(call.end_timestamp).getTime() : call.end_timestamp,
           duration_display: call.duration_ms ? `${Math.floor(call.duration_ms / 60000)}m ${Math.floor((call.duration_ms % 60000) / 1000)}s` : '---',
-          cost_display: call.combined_cost ? `₹${(call.combined_cost * 83).toFixed(2)}` : '---'
+          cost_display: call.combined_cost ? `₹${(call.combined_cost * 84).toFixed(2)}` : '---' // Rough USD to INR conversion
         };
       });
 
       saveStored(STORAGE_KEY_VOICE_CALLS, normalizedData);
-      return normalizedData.filter(c => !deletedIds.includes(c.id || c.call_id));
+      return getStoredVoiceCalls();
     }
   } catch (error) {
-    console.error('Network sync failure');
+    console.error('Voice Direct API Sync Failed');
   }
   return getStoredVoiceCalls();
 };
@@ -112,13 +112,27 @@ export const fetchWebhookCalls = async (): Promise<any[]> => {
     if (response.ok) {
       const data = await response.json();
       const rawData = Array.isArray(data) ? data : (data.calls || data.data || []);
-      const deletedIds = getDeletedIds();
       const normalizedData = rawData.map((call: any) => ({ ...call, _source_origin: 'webhook_n8n' }));
       saveStored(STORAGE_KEY_WEBHOOK_CALLS, normalizedData);
-      return normalizedData.filter(c => !deletedIds.includes(c.id || c.call_id));
+      return getStoredWebhookCalls();
     }
   } catch (error) {
-    console.warn('Webhook sync failure');
+    console.warn('Webhook call fetch failed');
   }
   return getStoredWebhookCalls();
+};
+
+export const fetchLeads = async (): Promise<any[]> => {
+  try {
+    const response = await fetch(`${API_CONFIG.GET_CALLS}?action=get_leads`);
+    if (response.ok) {
+      const data = await response.json();
+      const rawData = Array.isArray(data) ? data : (data.leads || data.data || []);
+      saveStored(STORAGE_KEY_LEADS, rawData);
+      return rawData;
+    }
+  } catch (error) {
+    console.warn('Leads fetch failed');
+  }
+  return getStoredLeads();
 };
