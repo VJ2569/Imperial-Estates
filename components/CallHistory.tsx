@@ -16,9 +16,7 @@ import {
   Trash2,
   Clock,
   ArrowRightLeft,
-  DollarSign,
-  User,
-  Tags
+  DollarSign
 } from 'lucide-react';
 import { 
   fetchVoiceDirectCalls, 
@@ -42,8 +40,6 @@ const CallHistory: React.FC = () => {
 
   // STRICT WHITELIST for Voice Intelligence Stream
   const VOICE_WHITELIST = [
-    'customer_name',
-    'enquiry_type',
     'call_status',
     'start_timestamp',
     'end_timestamp',
@@ -111,7 +107,7 @@ const CallHistory: React.FC = () => {
     if (data.length === 0) return [];
     if (activeTab === 'voice') {
       // Whitelisted headers for Voice tab
-      return ['customer_name', 'enquiry_type', 'call_status', 'start_timestamp', 'duration_display', 'cost_display'];
+      return ['call_status', 'start_timestamp', 'duration_display', 'cost_display'];
     }
     // Webhook leads are fully dynamic but filtered for metadata
     const allKeys = Array.from(new Set(data.slice(0, 5).flatMap(item => Object.keys(item))));
@@ -120,8 +116,6 @@ const CallHistory: React.FC = () => {
   };
 
   const formatHeader = (key: string) => {
-    if (key === 'customer_name') return 'NAME';
-    if (key === 'enquiry_type') return 'ENQUIRY TYPE';
     return key.replace(/_/g, ' ').toUpperCase();
   };
 
@@ -277,7 +271,7 @@ const CallHistory: React.FC = () => {
              {/* Modal Header */}
              <div className="p-10 pb-8 flex justify-between items-start border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40">
                 <div className="flex items-center gap-7">
-                   <div className="w-16 h-16 bg-blue-600 rounded-[24px] flex items-center justify-center text-white shadow-2xl">
+                   <div className="w-16 h-16 bg-blue-600 rounded-[24px] flex items-center justify-center text-white shadow-2xl shadow-blue-500/30">
                       {activeTab === 'voice' ? <Activity size={28} /> : <Database size={28} />}
                    </div>
                    <div>
@@ -304,7 +298,7 @@ const CallHistory: React.FC = () => {
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-6">Standard Telemetry (IST)</p>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                            {Object.entries(selectedRecord).map(([key, value]) => {
-                             // Apply Whitelist for voice tab, otherwise filtered skip
+                             // Whitelist filtering for voice tab
                              if (activeTab === 'voice' && !VOICE_WHITELIST.includes(key)) return null;
                              
                              // Generic filters
@@ -313,9 +307,7 @@ const CallHistory: React.FC = () => {
                              const icon = key.includes('timestamp') ? <Clock size={12}/> : 
                                           key.includes('number') ? <Phone size={12}/> : 
                                           key.includes('direction') ? <ArrowRightLeft size={12}/> : 
-                                          key.includes('cost') ? <DollarSign size={12}/> : 
-                                          key.includes('name') ? <User size={12}/> : 
-                                          key.includes('type') ? <Tags size={12}/> : null;
+                                          key.includes('cost') ? <DollarSign size={12}/> : null;
 
                              return (
                                <div key={key} className="bg-slate-50 dark:bg-slate-800/40 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 group hover:border-blue-500/50 transition-colors">
