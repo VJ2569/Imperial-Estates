@@ -60,13 +60,14 @@ export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
     const apiKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
     const agentId = localStorage.getItem('agent_id') || AGENT_CONFIG.AGENT_ID;
     
-    if (!apiKey || apiKey.trim() === '' || apiKey === 'YOUR_AGENT_API_KEY') {
+    // Safety check for empty or placeholder keys
+    if (!apiKey || apiKey.trim() === '' || apiKey === 'YOUR_AGENT_API_KEY' || apiKey.includes('YOUR_')) {
       return getStoredVoiceCalls();
     }
 
-    // Retell V2 list-calls with descending sort to get latest data first
-    let url = 'https://api.retellai.com/v2/list-calls?sort_order=descending&limit=50';
-    if (agentId && agentId !== 'YOUR_AGENT_ID') {
+    // Retell V2 list-calls with explicit sorting and limit
+    let url = 'https://api.retellai.com/v2/list-calls?sort_order=descending&sort_by=start_timestamp&limit=100';
+    if (agentId && agentId !== 'YOUR_AGENT_ID' && !agentId.includes('YOUR_')) {
       url += `&filter_agent_id=${agentId}`;
     }
 
@@ -80,7 +81,6 @@ export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
 
     if (response.ok) {
       const data = await response.json();
-      // Handle different possible response structures (array or object with calls key)
       const rawData = Array.isArray(data) ? data : (data.calls || data.data || []);
       const deletedIds = getDeletedIds();
       
@@ -88,7 +88,7 @@ export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
         return {
           ...call,
           _source_origin: 'voice_direct_api',
-          // Standardization
+          // Standardization for IST conversion
           start_timestamp: typeof call.start_timestamp === 'string' ? new Date(call.start_timestamp).getTime() : call.start_timestamp,
           end_timestamp: typeof call.end_timestamp === 'string' ? new Date(call.end_timestamp).getTime() : call.end_timestamp,
           duration_display: call.duration_ms ? `${Math.floor(call.duration_ms / 60000)}m ${Math.floor((call.duration_ms % 60000) / 1000)}s` : '---',
@@ -97,10 +97,9 @@ export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
       });
 
       saveStored(STORAGE_KEY_VOICE_CALLS, normalizedData);
-      // Filter out deleted items before returning to UI
       return normalizedData.filter((c: any) => !deletedIds.includes(c.id || c.call_id));
     } else {
-      console.error(`Voice API Error: ${response.status} ${response.statusText}`);
+      console.error(`Voice API error: ${response.status}`);
     }
   } catch (error) {
     console.error('Critical Failure: Voice Direct API Sync');
