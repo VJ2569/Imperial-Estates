@@ -1,254 +1,301 @@
 
-import React, { useEffect, useState } from 'react';
-import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
-  BarChart, Bar, LineChart, Line, Legend, ComposedChart, ReferenceLine 
-} from 'recharts';
-import { fetchVoiceDirectCalls, getStoredVoiceCalls } from '../services/retellService';
-import { fetchProperties, getStoredProperties } from '../services/propertyService';
-import { Property, VoiceCall } from '../types';
-import { TrendingUp, Home, Phone, DollarSign, Clock, AlertTriangle, Activity, Zap, RefreshCcw } from 'lucide-react';
-import { format, subMonths, eachDayOfInterval, subDays, isSameDay, differenceInDays, isValid } from 'date-fns';
+import React, { useState, useEffect } from 'react';
+import { Save, Key, User, Shield, CheckCircle2, Plus, Trash2, HelpCircle, Moon, Sun, Lock } from 'lucide-react';
+import { AGENT_CONFIG } from '../constants';
+import { Assistant } from '../types';
 
-const COLORS = {
-  primary: '#3b82f6',
-  secondary: '#10b981', 
-  tertiary: '#f59e0b',
-  danger: '#ef4444',
-  slate: '#64748b',
-  purple: '#8b5cf6'
-};
+const Settings: React.FC = () => {
+  const [activeSection, setActiveSection] = useState<'general' | 'integrations' | 'security'>('integrations');
+  const [showSuccess, setShowSuccess] = useState(false);
 
-const AnalyticsDashboard: React.FC = () => {
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [calls, setCalls] = useState<VoiceCall[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'error'>('idle');
+  const [agentConfig, setAgentConfig] = useState({
+    publicKey: '',
+    assistants: [] as Assistant[],
+    privateKey: ''
+  });
+  
+  const [newAssistantId, setNewAssistantId] = useState('');
+  const [newAssistantName, setNewAssistantName] = useState('');
+
+  const [generalConfig, setGeneralConfig] = useState({
+    companyName: 'Imperial Estates',
+    adminName: 'Admin User',
+    email: 'admin@imperialestates.com',
+    appearance: 'light'
+  });
+
+  const [securityPin, setSecurityPin] = useState('');
+  const [securityEnabled, setSecurityEnabled] = useState(false);
 
   useEffect(() => {
-    loadAllData();
+    const storedPublicKey = localStorage.getItem('agent_public_key') || '';
+    const storedPrivateKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
+    const storedPin = localStorage.getItem('aegisa_security_pin') || '12345';
+    const storedSecurityEnabled = localStorage.getItem('aegisa_security_enabled') === 'true';
+    
+    setSecurityPin(storedPin);
+    setSecurityEnabled(storedSecurityEnabled);
+    
+    let loadedAssistants: Assistant[] = [];
+    const storedIdsJson = localStorage.getItem('agent_ids');
+    
+    if (storedIdsJson) {
+        try {
+            const parsed = JSON.parse(storedIdsJson);
+            if (Array.isArray(parsed)) {
+                loadedAssistants = parsed;
+            }
+        } catch (e) {
+            console.error('Failed to parse agent IDs', e);
+        }
+    }
+
+    setAgentConfig({
+        publicKey: storedPublicKey,
+        assistants: loadedAssistants,
+        privateKey: (storedPrivateKey === 'YOUR_AGENT_API_KEY' || !storedPrivateKey) ? '' : storedPrivateKey
+    });
+
+    const storedGeneral = localStorage.getItem('app_general_config');
+    if (storedGeneral) {
+      setGeneralConfig(prev => ({ ...prev, ...JSON.parse(storedGeneral) }));
+    }
   }, []);
 
-  const loadAllData = async () => {
-    const cachedProps = getStoredProperties();
-    const cachedCalls = getStoredVoiceCalls();
-    
-    setProperties(cachedProps);
-    setCalls(cachedCalls);
-    
-    if (cachedProps.length === 0 && cachedCalls.length === 0) {
-        setLoading(true);
+  useEffect(() => {
+    if (generalConfig.appearance === 'dark') {
+      document.documentElement.classList.add('dark');
     } else {
-        setLoading(false);
+      document.documentElement.classList.remove('dark');
+    }
+  }, [generalConfig.appearance]);
+
+  const handleSave = () => {
+    localStorage.setItem('agent_public_key', agentConfig.publicKey);
+    localStorage.setItem('agent_api_key', agentConfig.privateKey);
+    localStorage.setItem('agent_ids', JSON.stringify(agentConfig.assistants));
+    
+    if (agentConfig.assistants.length > 0) {
+        localStorage.setItem('agent_id', agentConfig.assistants[0].id);
+    } else {
+        localStorage.removeItem('agent_id');
     }
 
-    setSyncStatus('syncing');
-    try {
-      const [propData, callData] = await Promise.all([
-        fetchProperties(),
-        fetchVoiceDirectCalls()
-      ]);
-      
-      if (propData) setProperties(propData);
-      if (callData) setCalls(callData);
-      setSyncStatus('idle');
-    } catch (err) {
-      console.error('Telemetry Sync Failed', err);
-      setSyncStatus('error');
-    } finally {
-      setLoading(false);
+    localStorage.setItem('aegisa_security_pin', securityPin);
+    localStorage.setItem('aegisa_security_enabled', securityEnabled.toString());
+    localStorage.setItem('app_general_config', JSON.stringify(generalConfig));
+
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  };
+
+  const addAssistant = () => {
+    if (newAssistantId.trim() && newAssistantName.trim()) {
+        const id = newAssistantId.trim();
+        const name = newAssistantName.trim();
+        
+        if (!agentConfig.assistants.some(a => a.id === id)) {
+            setAgentConfig(prev => ({
+                ...prev,
+                assistants: [...prev.assistants, { id, name }]
+            }));
+        }
+        setNewAssistantId('');
+        setNewAssistantName('');
     }
   };
 
-  const getCallsOverTime = () => {
-    const end = new Date();
-    const start = subDays(end, 30);
-    const days = eachDayOfInterval({ start, end });
-
-    return days.map(day => {
-      const dayCalls = calls.filter(c => {
-        const cDate = new Date(c.start_timestamp);
-        return isValid(cDate) && isSameDay(cDate, day);
-      });
-      
-      return {
-        date: format(day, 'MMM dd'),
-        calls: dayCalls.length,
-        duration: Math.floor(dayCalls.reduce((acc, c) => acc + (c.duration_ms ? c.duration_ms / 1000 : 0), 0) / 60)
-      };
-    });
+  const removeAssistant = (idToRemove: string) => {
+    setAgentConfig(prev => ({
+        ...prev,
+        assistants: prev.assistants.filter(a => a.id !== idToRemove)
+    }));
   };
-
-  const getInventoryTrends = () => {
-    const end = new Date();
-    const months = [5, 4, 3, 2, 1, 0].map(i => {
-       const d = subMonths(end, i);
-       return { 
-         month: format(d, 'MMM'),
-         dateObj: d 
-       };
-    });
-
-    return months.map(({ month, dateObj }) => {
-       const activeProps = properties.filter(p => {
-          const availDate = new Date(p.availableFrom || p.timeline || Date.now());
-          return isValid(availDate) && availDate <= dateObj;
-       });
-       
-       return {
-         name: month,
-         apartment: activeProps.filter(p => p.type === 'apartment').length,
-         villa: activeProps.filter(p => p.type === 'villa').length,
-         commercial: activeProps.filter(p => p.type === 'commercial').length,
-       };
-    });
-  };
-
-  const totalValue = properties.reduce((acc, curr) => acc + (curr.isRental ? 0 : (curr.price || 0)), 0);
-  const availableProps = properties.filter(p => p.status === 'available');
-  
-  const totalVacancyDays = availableProps.reduce((acc, p) => {
-      const availDate = new Date(p.availableFrom || p.timeline || Date.now());
-      const days = isValid(availDate) ? differenceInDays(new Date(), availDate) : 0;
-      return acc + (days > 0 ? days : 0);
-  }, 0);
-
-  const avgVacancyDuration = availableProps.length ? Math.round(totalVacancyDays / availableProps.length) : 0;
-  const recentCalls = calls.filter(c => {
-      const cDate = new Date(c.start_timestamp);
-      return isValid(cDate) && differenceInDays(new Date(), cDate) < 7;
-  }).length;
-
-  const durationRisk = Math.min(100, (avgVacancyDuration / 90) * 100);
-  const demandRisk = Math.max(0, 100 - (recentCalls * 5));
-  const vacancyRiskScore = Math.round((durationRisk * 0.6) + (demandRisk * 0.4));
-
-  const getRiskColor = (score: number) => {
-     if (score < 30) return 'text-emerald-500';
-     if (score < 70) return 'text-amber-500';
-     return 'text-rose-500';
-  };
-
-  const StatCard = ({ icon: Icon, label, value, subtext, colorClass }: any) => (
-    <div className="bg-white dark:bg-slate-900 p-6 rounded-[32px] border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col justify-between h-full relative overflow-hidden group hover:shadow-2xl hover:-translate-y-1 transition-all duration-500">
-       <div className="flex justify-between items-start mb-6">
-          <div className={`p-3 rounded-2xl ${colorClass} bg-opacity-10 dark:bg-opacity-20`}>
-             <Icon size={24} className={colorClass.replace('bg-', 'text-')} />
-          </div>
-          {subtext && <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800 px-3 py-1 rounded-full uppercase tracking-widest">{subtext}</span>}
-       </div>
-       <div>
-          <h4 className="text-3xl font-black text-slate-900 dark:text-white mb-1 tracking-tight">{value}</h4>
-          <p className="text-slate-400 dark:text-slate-500 text-[10px] font-black uppercase tracking-widest">{label}</p>
-       </div>
-    </div>
-  );
-
-  if (loading) return (
-      <div className="h-96 w-full flex items-center justify-center">
-          <div className="flex flex-col items-center gap-8">
-            <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs font-black uppercase tracking-[0.4em] text-slate-400 animate-pulse">Initializing Global Telemetry...</p>
-          </div>
-      </div>
-  );
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto space-y-12 w-full pb-32 animate-in fade-in duration-700">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-         <div>
-            <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Operational Intelligence</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mt-1 font-medium italic">Advanced portfolio analytics & voice communication metrics</p>
-         </div>
-         <div className="flex items-center gap-4">
-           {syncStatus === 'syncing' ? (
-             <div className="flex items-center gap-2 px-5 py-2.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-2xl border border-blue-100 dark:border-blue-800/50">
-                <RefreshCcw size={14} className="animate-spin" />
-                <span className="text-[10px] font-black uppercase tracking-widest">Live Sync Active</span>
-             </div>
-           ) : (
-             <button onClick={loadAllData} className="flex items-center gap-2 px-5 py-2.5 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 rounded-2xl border border-slate-200 dark:border-slate-800 hover:bg-slate-50 transition-all active:scale-95">
-                <RefreshCcw size={14} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Refresh Intelligence</span>
-             </button>
-           )}
-         </div>
+    <div className="p-4 md:p-8 max-w-5xl mx-auto w-full">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 md:mb-8">
+        <div>
+          <h2 className="text-xl md:text-2xl font-bold text-gray-900 dark:text-white uppercase tracking-tight">System Configuration</h2>
+          <p className="text-gray-500 dark:text-gray-400 text-sm italic">Local security and communication protocols</p>
+        </div>
+        <button
+          onClick={handleSave}
+          className="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-semibold shadow-lg flex items-center justify-center gap-2 w-full sm:w-auto"
+        >
+          {showSuccess ? <CheckCircle2 size={20} /> : <Save size={20} />}
+          {showSuccess ? 'SYNCED' : 'COMMIT CHANGES'}
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-         <div className="bg-white dark:bg-slate-900 p-10 rounded-[48px] border border-slate-100 dark:border-slate-800 shadow-sm transition-all hover:shadow-xl">
-            <div className="flex items-center justify-between mb-8">
-               <div>
-                  <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
-                      <Activity size={22} className="text-blue-500"/>
-                      Voice Engagement Traffic
-                  </h3>
-                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Daily interaction load (30 Days)</p>
-               </div>
-               <div className="text-right">
-                  <span className="text-2xl font-black text-blue-600">{calls.length}</span>
-                  <p className="text-[9px] text-slate-400 font-black uppercase tracking-widest">Logs Found</p>
-               </div>
-            </div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={getCallsOverTime()}>
-                      <defs>
-                          <linearGradient id="colorCalls" x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor={COLORS.primary} stopOpacity={0.25}/>
-                              <stop offset="95%" stopColor={COLORS.primary} stopOpacity={0}/>
-                          </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" opacity={0.3} />
-                      <XAxis dataKey="date" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} minTickGap={30} />
-                      <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                      <Tooltip 
-                        contentStyle={{borderRadius: '24px', border: 'none', backgroundColor: '#0f172a', color: '#fff', fontSize: '11px', padding: '12px 16px', boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1)'}} 
-                        itemStyle={{fontWeight: '900', textTransform: 'uppercase'}}
+      <div className="flex flex-col md:flex-row gap-6 md:gap-8">
+        <div className="w-full md:w-64 space-y-2 flex-shrink-0">
+          <button
+            onClick={() => setActiveSection('integrations')}
+            className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-medium transition-colors ${
+              activeSection === 'integrations' 
+                ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-100 dark:border-slate-700' 
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Key size={18} />
+            Voice Intelligence
+          </button>
+          <button
+            onClick={() => setActiveSection('security')}
+            className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-medium transition-colors ${
+              activeSection === 'security' 
+                ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-100 dark:border-slate-700' 
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800'
+            }`}
+          >
+            <Shield size={18} />
+            Aegisa Access
+          </button>
+          <button
+            onClick={() => setActiveSection('general')}
+            className={`w-full text-left px-4 py-3 rounded-lg flex items-center gap-3 font-medium transition-colors ${
+              activeSection === 'general' 
+                ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-100 dark:border-slate-700' 
+                : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-slate-800'
+            }`}
+          >
+            <User size={18} />
+            Imperial Profile
+          </button>
+        </div>
+
+        <div className="flex-1 min-w-0">
+          {activeSection === 'integrations' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+              <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Deployed Intelligence Units</label>
+                    <div className="space-y-3 mb-4">
+                        {agentConfig.assistants.length === 0 && (
+                            <p className="text-sm text-gray-400 italic">No AI units active.</p>
+                        )}
+                        {agentConfig.assistants.map((assistant, index) => (
+                            <div key={assistant.id} className="flex items-center gap-3 bg-gray-50 dark:bg-slate-800 p-3 rounded-lg border border-gray-100 dark:border-slate-700 group">
+                                <div className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 w-8 h-8 rounded flex items-center justify-center text-xs font-bold shrink-0">
+                                    {index + 1}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-sm font-bold text-gray-800 dark:text-gray-200 truncate">{assistant.name}</div>
+                                    <div className="text-xs font-mono text-gray-500 dark:text-gray-400 truncate">{assistant.id}</div>
+                                </div>
+                                <button 
+                                    onClick={() => removeAssistant(assistant.id)}
+                                    className="p-2 text-gray-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors"
+                                >
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="flex flex-col md:flex-row gap-2">
+                        <input 
+                          type="text" 
+                          value={newAssistantName}
+                          onChange={(e) => setNewAssistantName(e.target.value)}
+                          placeholder="Unit Identifier"
+                          className="flex-1 px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm text-gray-900 dark:text-white"
+                        />
+                        <input 
+                          type="text" 
+                          value={newAssistantId}
+                          onChange={(e) => setNewAssistantId(e.target.value)}
+                          placeholder="Project ID"
+                          className="flex-[2] px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm text-gray-900 dark:text-white"
+                        />
+                        <button 
+                            onClick={addAssistant}
+                            disabled={!newAssistantId.trim() || !newAssistantName.trim()}
+                            className="bg-slate-900 dark:bg-slate-700 text-white px-4 py-2 rounded-lg hover:bg-slate-800 transition-colors disabled:opacity-50"
+                        >
+                            <Plus size={20} />
+                        </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Intelligence Access Token</label>
+                    <div className="relative">
+                      <input 
+                        type="password" 
+                        value={agentConfig.privateKey}
+                        onChange={(e) => setAgentConfig({...agentConfig, privateKey: e.target.value})}
+                        placeholder="Secure API Token..."
+                        className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm text-gray-900 dark:text-white"
                       />
-                      <Area type="monotone" dataKey="calls" stroke={COLORS.primary} fillOpacity={1} fill="url(#colorCalls)" strokeWidth={4} />
-                  </AreaChart>
-              </ResponsiveContainer>
+                      <Shield className="absolute right-3 top-2.5 text-gray-400" size={16} />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-         </div>
-
-         <div className="bg-white dark:bg-slate-900 p-10 rounded-[48px] border border-slate-100 dark:border-slate-800 shadow-sm transition-all hover:shadow-xl">
-            <div className="flex items-center justify-between mb-8">
-               <div>
-                  <h3 className="font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-3">
-                      <TrendingUp size={22} className="text-emerald-500"/>
-                      Portfolio Deployment
-                  </h3>
-                  <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-1">Inventory distribution over time</p>
+          )}
+          {/* Section 2 (Security) and Section 3 (General) remain largely as before but with branding cleanup */}
+          {activeSection === 'security' && (
+             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+               <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm">
+                 <div className="flex items-center gap-3 mb-6 pb-4 border-b border-gray-100 dark:border-slate-800">
+                    <Lock size={20} className="text-blue-600" />
+                    <h3 className="font-bold text-gray-900 dark:text-white uppercase tracking-tight">Access Control</h3>
+                 </div>
+                 <div className="flex items-center justify-between p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-100 dark:border-slate-700">
+                    <div>
+                      <h4 className="text-sm font-bold text-gray-900 dark:text-white">Encrypted PIN</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Secure admin gateway</p>
+                    </div>
+                    <button 
+                      onClick={() => setSecurityEnabled(!securityEnabled)}
+                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${securityEnabled ? 'bg-blue-600' : 'bg-slate-300 dark:bg-slate-700'}`}
+                    >
+                      <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${securityEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+                    </button>
+                  </div>
+                  {securityEnabled && (
+                    <div className="mt-4 animate-in fade-in slide-in-from-top-2">
+                      <input 
+                        type="password" 
+                        maxLength={5}
+                        value={securityPin}
+                        onChange={(e) => {
+                          const val = e.target.value.replace(/\D/g, '');
+                          if (val.length <= 5) setSecurityPin(val);
+                        }}
+                        className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-xl font-mono tracking-[1em] text-center"
+                        placeholder="*****"
+                      />
+                    </div>
+                  )}
                </div>
-            </div>
-            <div className="h-64">
-              <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={getInventoryTrends()}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" opacity={0.3} />
-                      <XAxis dataKey="month" stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} axisLine={false} />
-                      <Tooltip cursor={{fill: '#f8fafc', opacity: 0.1}} contentStyle={{borderRadius: '24px', border: 'none', backgroundColor: '#0f172a', color: '#fff', fontSize: '11px', padding: '12px 16px'}} />
-                      <Legend iconType="circle" wrapperStyle={{fontSize: '9px', paddingTop: '24px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.1em'}} />
-                      <Bar dataKey="apartment" stackId="a" fill={COLORS.primary} radius={[4, 4, 0, 0]} name="Apts" />
-                      <Bar dataKey="villa" stackId="a" fill={COLORS.purple} name="Villas" />
-                      <Bar dataKey="commercial" stackId="a" fill={COLORS.tertiary} name="Comm" />
-                  </BarChart>
-              </ResponsiveContainer>
-            </div>
-         </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
-          <StatCard icon={AlertTriangle} label="Vacancy Risk" value={vacancyRiskScore} subtext="/ 100" colorClass={getRiskColor(vacancyRiskScore).replace('text-', 'bg-')} />
-          <StatCard icon={Clock} label="Avg Velocity" value={`${avgVacancyDuration}d`} colorClass="bg-blue-500" />
-          <StatCard icon={Zap} label="Recent Reach" value={recentCalls} subtext="Direct Intel" colorClass="bg-emerald-500" />
-          <StatCard icon={Phone} label="Voice Log" value={calls.length} colorClass="bg-purple-500" />
-          <StatCard icon={DollarSign} label="Portfolio Val" value={`₹${(totalValue / 10000000).toFixed(1)}Cr`} colorClass="bg-amber-500" />
-          <StatCard icon={Home} label="Active Assets" value={properties.length} colorClass="bg-slate-500" />
+             </div>
+          )}
+          {activeSection === 'general' && (
+             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+               <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm">
+                 <h3 className="font-bold text-gray-900 dark:text-white mb-6 border-b border-gray-100 dark:border-slate-800 pb-4 uppercase tracking-tight">Asset Profile</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Organization</label>
+                      <input type="text" value={generalConfig.companyName} onChange={(e) => setGeneralConfig({...generalConfig, companyName: e.target.value})} className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg text-gray-900 dark:text-white" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Principal</label>
+                      <input type="text" value={generalConfig.adminName} onChange={(e) => setGeneralConfig({...generalConfig, adminName: e.target.value})} className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg text-gray-900 dark:text-white" />
+                    </div>
+                 </div>
+               </div>
+             </div>
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
-export default AnalyticsDashboard;
+export default Settings;
