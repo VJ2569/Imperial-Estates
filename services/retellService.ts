@@ -54,19 +54,19 @@ export const getStoredLeads = (): any[] => loadStored(STORAGE_KEY_LEADS);
 
 /**
  * Fetches enriched call data directly from the Voice AI API.
+ * Currently serves as a fallback or secondary source if needed,
+ * but primary dashboard data now comes from GAS.
  */
 export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
   try {
     const apiKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
     const agentId = localStorage.getItem('agent_id') || AGENT_CONFIG.AGENT_ID;
     
-    // Safety check for empty or placeholder keys
     if (!apiKey || apiKey.trim() === '' || apiKey === 'YOUR_AGENT_API_KEY' || apiKey.includes('YOUR_')) {
       return getStoredVoiceCalls();
     }
 
-    // Retell V2 list-calls with explicit sorting and limit
-    let url = 'https://api.retellai.com/v2/list-calls?sort_order=descending&sort_by=start_timestamp&limit=100';
+    let url = 'https://api.retellai.com/v2/list-calls?sort_order=descending&sort_by=start_timestamp&limit=50';
     if (agentId && agentId !== 'YOUR_AGENT_ID' && !agentId.includes('YOUR_')) {
       url += `&filter_agent_id=${agentId}`;
     }
@@ -84,59 +84,52 @@ export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
       const rawData = Array.isArray(data) ? data : (data.calls || data.data || []);
       const deletedIds = getDeletedIds();
       
-      const normalizedData = rawData.map((call: any) => {
-        return {
-          ...call,
-          _source_origin: 'voice_direct_api',
-          // Standardization for IST conversion
-          start_timestamp: typeof call.start_timestamp === 'string' ? new Date(call.start_timestamp).getTime() : call.start_timestamp,
-          end_timestamp: typeof call.end_timestamp === 'string' ? new Date(call.end_timestamp).getTime() : call.end_timestamp,
-          duration_display: call.duration_ms ? `${Math.floor(call.duration_ms / 60000)}m ${Math.floor((call.duration_ms % 60000) / 1000)}s` : '---',
-          cost_display: call.combined_cost ? `₹${(call.combined_cost * 84).toFixed(2)}` : '---'
-        };
-      });
+      const normalizedData = rawData.map((call: any) => ({
+        ...call,
+        _source_origin: 'voice_direct_api',
+        start_timestamp: typeof call.start_timestamp === 'string' ? new Date(call.start_timestamp).getTime() : call.start_timestamp,
+        duration_display: call.duration_ms ? `${Math.floor(call.duration_ms / 60000)}m ${Math.floor((call.duration_ms % 60000) / 1000)}s` : '---',
+        cost_display: call.combined_cost ? `₹${(call.combined_cost * 84).toFixed(2)}` : '---'
+      }));
 
       saveStored(STORAGE_KEY_VOICE_CALLS, normalizedData);
       return normalizedData.filter((c: any) => !deletedIds.includes(c.id || c.call_id));
-    } else {
-      console.error(`Voice API error: ${response.status}`);
     }
   } catch (error) {
-    console.error('Critical Failure: Voice Direct API Sync');
+    console.error('Retell Direct Sync failed');
   }
   return getStoredVoiceCalls();
 };
 
 /**
- * Fetches raw dynamic data from the n8n Webhook.
+ * Primary Fetcher: Pulls unified Lead + Call data from Google Apps Script.
  */
 export const fetchWebhookCalls = async (): Promise<any[]> => {
   try {
-    const response = await fetch(`${API_CONFIG.GET_CALLS}?action=get_calls`);
+    // Single GET endpoint for all snapshot data
+    const response = await fetch(API_CONFIG.GET_CALLS, { method: 'GET', redirect: 'follow' });
     if (response.ok) {
       const data = await response.json();
-      const rawData = Array.isArray(data) ? data : (data.calls || data.data || []);
-      const normalizedData = rawData.map((call: any) => ({ ...call, _source_origin: 'webhook_n8n' }));
+      // Handle cases where response might be { calls: [], leads: [] } or just an array
+      const rawData = Array.isArray(data) ? data : (data.calls || data.data || data.leads || []);
+      
+      const normalizedData = rawData.map((item: any) => ({ 
+        ...item, 
+        _source_origin: 'google_apps_script',
+        // Attempt to standardize timestamps if present
+        start_timestamp: item.timestamp || item.start_timestamp || item.date || Date.now()
+      }));
+
       saveStored(STORAGE_KEY_WEBHOOK_CALLS, normalizedData);
       return getStoredWebhookCalls();
     }
   } catch (error) {
-    console.warn('Webhook call fetch failed');
+    console.warn('GAS Hub Fetch Failed');
   }
   return getStoredWebhookCalls();
 };
 
 export const fetchLeads = async (): Promise<any[]> => {
-  try {
-    const response = await fetch(`${API_CONFIG.GET_CALLS}?action=get_leads`);
-    if (response.ok) {
-      const data = await response.json();
-      const rawData = Array.isArray(data) ? data : (data.leads || data.data || []);
-      saveStored(STORAGE_KEY_LEADS, rawData);
-      return rawData;
-    }
-  } catch (error) {
-    console.warn('Leads fetch failed');
-  }
-  return getStoredLeads();
+  // Leads are now merged into the main fetchWebhookCalls snapshot
+  return fetchWebhookCalls();
 };
