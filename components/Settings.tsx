@@ -220,24 +220,35 @@ const Settings: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Intelligence Access Token</label>
-                    <div className="relative">
+                  <div className="pt-4 border-t border-gray-100 dark:border-slate-800 space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Public API Key</label>
                       <input 
-                        type="password" 
-                        value={agentConfig.privateKey}
-                        onChange={(e) => setAgentConfig({...agentConfig, privateKey: e.target.value})}
-                        placeholder="Secure API Token..."
+                        type="text" 
+                        value={agentConfig.publicKey}
+                        onChange={(e) => setAgentConfig({...agentConfig, publicKey: e.target.value})}
+                        placeholder="Public Key (Optional)..."
                         className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm text-gray-900 dark:text-white"
                       />
-                      <Shield className="absolute right-3 top-2.5 text-gray-400" size={16} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Private API Key (Access Token)</label>
+                      <div className="relative">
+                        <input 
+                          type="password" 
+                          value={agentConfig.privateKey}
+                          onChange={(e) => setAgentConfig({...agentConfig, privateKey: e.target.value})}
+                          placeholder="Secure API Token..."
+                          className="w-full px-4 py-2 border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-950 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm text-gray-900 dark:text-white"
+                        />
+                        <Shield className="absolute right-3 top-2.5 text-gray-400" size={16} />
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
           )}
-          {/* Section 2 (Security) and Section 3 (General) remain largely as before but with branding cleanup */}
           {activeSection === 'security' && (
              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-gray-200 dark:border-slate-800 shadow-sm">
