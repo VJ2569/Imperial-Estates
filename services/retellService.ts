@@ -58,12 +58,19 @@ export const getStoredLeads = (): any[] => loadStored(STORAGE_KEY_LEADS);
 export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
   try {
     const apiKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
+    const agentId = localStorage.getItem('agent_id') || AGENT_CONFIG.AGENT_ID;
     
     if (!apiKey || apiKey.trim() === '' || apiKey === 'YOUR_AGENT_API_KEY') {
       return getStoredVoiceCalls();
     }
 
-    const response = await fetch('https://api.retellai.com/v2/list-calls', {
+    // Retell V2 list-calls with descending sort to get latest data first
+    let url = 'https://api.retellai.com/v2/list-calls?sort_order=descending&limit=50';
+    if (agentId && agentId !== 'YOUR_AGENT_ID') {
+      url += `&filter_agent_id=${agentId}`;
+    }
+
+    const response = await fetch(url, {
       method: 'GET',
       headers: { 
         'Authorization': `Bearer ${apiKey}`,
@@ -73,7 +80,9 @@ export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
 
     if (response.ok) {
       const data = await response.json();
+      // Handle different possible response structures (array or object with calls key)
       const rawData = Array.isArray(data) ? data : (data.calls || data.data || []);
+      const deletedIds = getDeletedIds();
       
       const normalizedData = rawData.map((call: any) => {
         return {
@@ -88,10 +97,13 @@ export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
       });
 
       saveStored(STORAGE_KEY_VOICE_CALLS, normalizedData);
-      return getStoredVoiceCalls();
+      // Filter out deleted items before returning to UI
+      return normalizedData.filter((c: any) => !deletedIds.includes(c.id || c.call_id));
+    } else {
+      console.error(`Voice API Error: ${response.status} ${response.statusText}`);
     }
   } catch (error) {
-    console.error('Voice Direct API Sync Failed');
+    console.error('Critical Failure: Voice Direct API Sync');
   }
   return getStoredVoiceCalls();
 };
