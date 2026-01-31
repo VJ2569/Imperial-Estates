@@ -38,7 +38,7 @@ const CallHistory: React.FC = () => {
   const [activeTab, setActiveTab] = useState<ConsoleTab>('voice');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Whitelist for metadata display
+  // Whitelist for Retell metadata display
   const VOICE_WHITELIST = [
     'call_status',
     'start_timestamp',
@@ -46,7 +46,8 @@ const CallHistory: React.FC = () => {
     'disconnection_reason',
     'to_number',
     'direction',
-    'duration_display'
+    'duration_display',
+    'cost_display'
   ];
 
   const loadData = useCallback(async (isSilent = false) => {
@@ -56,18 +57,19 @@ const CallHistory: React.FC = () => {
       const deletedIds = getDeletedIds();
       let result: any[] = [];
       
-      // Pull latest snapshot from centralized GAS endpoint
-      result = await fetchWebhookCalls();
-      
-      // If GAS fails or returns empty, and we are in Voice tab, try Retell directly as fallback
-      if (result.length === 0 && activeTab === 'voice') {
+      // Determine source based on tab
+      if (activeTab === 'voice') {
+          // Tab 1: Pull directly from Retell API
           result = await fetchVoiceDirectCalls();
+      } else {
+          // Tab 2: Pull from Google Hub (GAS)
+          result = await fetchWebhookCalls();
       }
       
       const filtered = result.filter(item => !deletedIds.includes(item.id || item.call_id));
       setData(filtered);
     } catch (err: any) {
-      setError("Cloud Sync Standby: Connectivity to Intelligence Hub interrupted.");
+      setError("Sync Interrupted: Check your API connection.");
     } finally {
       if (!isSilent) setLoading(false);
     }
@@ -76,7 +78,7 @@ const CallHistory: React.FC = () => {
   useEffect(() => {
     loadData();
     
-    // Auto-refresh when the browser tab gains focus
+    // Auto-refresh when the browser tab gains focus (ensures Sheets data is current)
     const handleFocus = () => loadData(true);
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
@@ -113,6 +115,7 @@ const CallHistory: React.FC = () => {
     if (activeTab === 'voice') {
       return ['call_status', 'start_timestamp', 'duration_display', 'cost_display'];
     }
+    // Dynamic headers for GAS tab
     const allKeys = Array.from(new Set(data.slice(0, 5).flatMap(item => Object.keys(item || {})))) as string[];
     const skip = ['id', 'call_id', 'agent_id', 'metadata', 'transcript', 'recording_url', 'summary', 'call_analysis', '_source_origin'];
     return allKeys.filter(k => !skip.includes(k.toLowerCase())).slice(0, 5);
@@ -149,8 +152,8 @@ const CallHistory: React.FC = () => {
           <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Receptionist Console</h2>
           <div className="flex items-center gap-10 mt-5 overflow-x-auto no-scrollbar pb-2">
             {[
-              { id: 'voice', label: 'Intelligence Stream', icon: Activity },
-              { id: 'enquiry', label: 'Google Hub Sync', icon: Database }
+              { id: 'voice', label: 'Intelligence Stream (Retell)', icon: Activity },
+              { id: 'enquiry', label: 'Google Hub Sync (GAS)', icon: Database }
             ].map((tab) => (
               <button 
                 key={tab.id}
@@ -233,7 +236,9 @@ const CallHistory: React.FC = () => {
                 <>
                   <Inbox className="mx-auto text-slate-100 dark:text-slate-800 mb-8" size={80} />
                   <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-3 uppercase tracking-tight">Stream Standby</h3>
-                  <p className="text-slate-500 text-sm max-w-sm mx-auto font-medium">No records synced from Google Hub. Tap refresh to update.</p>
+                  <p className="text-slate-500 text-sm max-w-sm mx-auto font-medium">
+                    No records found for {activeTab === 'voice' ? 'Retell API' : 'Google Hub'}. Tap refresh to update.
+                  </p>
                 </>
               ) : (
                 <div className="flex flex-col items-center gap-8">
@@ -257,7 +262,9 @@ const CallHistory: React.FC = () => {
                    <div>
                       <h3 className="font-black text-2xl text-slate-900 dark:text-white tracking-tighter uppercase leading-none">Intelligence Inspection</h3>
                       <div className="flex items-center gap-4 mt-3">
-                         <span className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-blue-100 text-blue-700">Unified Snapshot</span>
+                         <span className="px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest bg-blue-100 text-blue-700">
+                           {activeTab === 'voice' ? 'Voice Stream' : 'Unified Hub Snapshot'}
+                         </span>
                          <span className="text-slate-300">•</span>
                          <span className="text-xs font-bold text-slate-500">REF: {selectedRecord.id || selectedRecord.call_id || '---'}</span>
                       </div>
@@ -284,6 +291,15 @@ const CallHistory: React.FC = () => {
                            })}
                         </div>
                       </div>
+
+                      {/* Media Vault Section */}
+                      {(selectedRecord.recording_url || selectedRecord.recording) && (
+                         <div className="bg-emerald-50 dark:bg-emerald-900/10 p-8 rounded-[40px] border border-emerald-100 dark:border-emerald-800/30">
+                            <a href={selectedRecord.recording_url || selectedRecord.recording} target="_blank" rel="noreferrer" className="w-full flex items-center justify-center gap-3 py-4 bg-emerald-600 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] hover:bg-emerald-700 transition-all shadow-xl active:scale-95">
+                               <Play size={18} fill="currentColor" /> Play Recording
+                            </a>
+                         </div>
+                      )}
                    </div>
 
                    <div className="space-y-10">
