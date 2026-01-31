@@ -53,9 +53,8 @@ export const getStoredWebhookCalls = (): any[] => {
 export const getStoredLeads = (): any[] => loadStored(STORAGE_KEY_LEADS);
 
 /**
- * Fetches enriched call data directly from the Voice AI API.
- * Currently serves as a fallback or secondary source if needed,
- * but primary dashboard data now comes from GAS.
+ * Fetches enriched call data directly from the Voice AI API (Retell).
+ * This remains the primary source for the 'Intelligence Stream' tab.
  */
 export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
   try {
@@ -102,21 +101,22 @@ export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
 };
 
 /**
- * Primary Fetcher: Pulls unified Lead + Call data from Google Apps Script.
+ * Primary Fetcher for Snapshot data from Google Apps Script.
+ * This remains the source for the 'Google Hub Sync' tab.
  */
 export const fetchWebhookCalls = async (): Promise<any[]> => {
   try {
-    // Single GET endpoint for all snapshot data
+    // Single GET endpoint for all snapshot data from Google Sheets
     const response = await fetch(API_CONFIG.GET_CALLS, { method: 'GET', redirect: 'follow' });
     if (response.ok) {
       const data = await response.json();
-      // Handle cases where response might be { calls: [], leads: [] } or just an array
+      // Snapshot could be array or object
       const rawData = Array.isArray(data) ? data : (data.calls || data.data || data.leads || []);
       
       const normalizedData = rawData.map((item: any) => ({ 
         ...item, 
         _source_origin: 'google_apps_script',
-        // Attempt to standardize timestamps if present
+        // Standardize timestamps
         start_timestamp: item.timestamp || item.start_timestamp || item.date || Date.now()
       }));
 
@@ -130,6 +130,6 @@ export const fetchWebhookCalls = async (): Promise<any[]> => {
 };
 
 export const fetchLeads = async (): Promise<any[]> => {
-  // Leads are now merged into the main fetchWebhookCalls snapshot
+  // Leads are currently pulled as part of the unified webhook fetch
   return fetchWebhookCalls();
 };
