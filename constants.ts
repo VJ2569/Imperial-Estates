@@ -2,8 +2,8 @@
 import { ApiConfig } from './types';
 
 // Webhook URLs
-const PROPERTY_WEBHOOK = 'https://n8n-nikki-j977.onrender.com/webhook/a10b094c-bcb8-493f-b74d-4eed90276286';
-const CALLS_WEBHOOK = 'https://n8n-nikki-j977.onrender.com/webhook/ec9d761c-68bd-4f01-b1e1-8886bc4f72df';
+const PROPERTY_WEBHOOK = 'https://n8n-production-177a.up.railway.app/webhook/a10b094c-bcb8-493f-b74d-4eed90276286'; //Database_control
+const CALLS_WEBHOOK = 'https://n8n-production-177a.up.railway.app/webhook/ec9d761c-68bd-4f01-b1e1-8886bc4f72df'; //form_to_dashboard
 
 export const API_CONFIG: ApiConfig = {
   GET_ALL: PROPERTY_WEBHOOK,
