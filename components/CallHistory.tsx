@@ -21,8 +21,6 @@ import {
 import { 
   fetchVoiceDirectCalls, 
   fetchWebhookCalls, 
-  getStoredVoiceCalls,
-  getStoredWebhookCalls,
   markIdAsDeleted,
   getDeletedIds
 } from '../services/retellService';
@@ -46,8 +44,7 @@ const CallHistory: React.FC = () => {
     'disconnection_reason',
     'to_number',
     'direction',
-    'duration_display',
-    'cost_display'
+    'duration_display
   ];
 
   const loadData = useCallback(async (isSilent = false) => {
@@ -66,10 +63,12 @@ const CallHistory: React.FC = () => {
           result = await fetchWebhookCalls();
       }
       
-      const filtered = result.filter(item => !deletedIds.includes(item.id || item.call_id));
+      // Secondary safety filter
+      const filtered = result.filter(item => !deletedIds.includes(item._uid || item.id || item.call_id));
       setData(filtered);
     } catch (err: any) {
-      setError("Sync Interrupted: Check your API connection.");
+      console.error("Sync Error:", err);
+      setError("Sync Interrupted: Reconnecting to Intelligence Hub...");
     } finally {
       if (!isSilent) setLoading(false);
     }
@@ -78,7 +77,7 @@ const CallHistory: React.FC = () => {
   useEffect(() => {
     loadData();
     
-    // Auto-refresh when the browser tab gains focus (ensures Sheets data is current)
+    // Auto-refresh when the browser tab gains focus
     const handleFocus = () => loadData(true);
     window.addEventListener('focus', handleFocus);
     return () => window.removeEventListener('focus', handleFocus);
@@ -88,8 +87,8 @@ const CallHistory: React.FC = () => {
     e.stopPropagation();
     if (confirm("Are you sure you want to permanently remove this record?")) {
       markIdAsDeleted(id);
-      setData(prev => prev.filter(item => (item.id || item.call_id) !== id));
-      if (selectedRecord && (selectedRecord.id === id || selectedRecord.call_id === id)) {
+      setData(prev => prev.filter(item => (item._uid || item.id || item.call_id) !== id));
+      if (selectedRecord && (selectedRecord._uid === id || selectedRecord.id === id || selectedRecord.call_id === id)) {
         setSelectedRecord(null);
       }
     }
@@ -113,11 +112,11 @@ const CallHistory: React.FC = () => {
   const getHeaders = (): string[] => {
     if (data.length === 0) return [];
     if (activeTab === 'voice') {
-      return ['call_status', 'start_timestamp', 'duration_display', 'cost_display'];
+      return ['call_status', 'start_timestamp', 'duration_display'];
     }
-    // Dynamic headers for GAS tab
-    const allKeys = Array.from(new Set(data.slice(0, 5).flatMap(item => Object.keys(item || {})))) as string[];
-    const skip = ['id', 'call_id', 'agent_id', 'metadata', 'transcript', 'recording_url', 'summary', 'call_analysis', '_source_origin'];
+    // Dynamic headers for GAS tab - Filter out internal technical keys
+    const allKeys = Array.from(new Set(data.slice(0, 10).flatMap(item => Object.keys(item || {})))) as string[];
+    const skip = ['id', 'call_id', 'agent_id', 'metadata', 'transcript', 'recording_url', 'summary', 'call_analysis', '_source_origin', '_uid', '_last_synced'];
     return allKeys.filter(k => !skip.includes(k.toLowerCase())).slice(0, 5);
   };
 
@@ -205,11 +204,11 @@ const CallHistory: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {filteredData.map((item, idx) => {
-                  const id = item.id || item.call_id || `idx-${idx}`;
+                  const uid = item._uid || item.id || item.call_id || `idx-${idx}`;
                   return (
-                    <tr key={id} onClick={() => setSelectedRecord(item)} className="hover:bg-blue-50/20 dark:hover:bg-blue-900/10 transition-colors cursor-pointer group h-20">
+                    <tr key={uid} onClick={() => setSelectedRecord(item)} className="hover:bg-blue-50/20 dark:hover:bg-blue-900/10 transition-colors cursor-pointer group h-20">
                       {headers.map(header => (
-                        <td key={header} className="px-10 py-2">
+                        <td key={`${uid}-${header}`} className="px-10 py-2">
                           <span className="text-sm font-bold text-slate-700 dark:text-slate-200 block truncate">
                             {renderCellValue(header, item[header])}
                           </span>
@@ -220,7 +219,7 @@ const CallHistory: React.FC = () => {
                             <div className="inline-flex items-center justify-center p-3 bg-slate-50 dark:bg-slate-800 group-hover:bg-blue-600 group-hover:text-white rounded-xl transition-all shadow-sm">
                                <Maximize2 size={16} />
                             </div>
-                            <button onClick={(e) => handleDeleteRecord(id, e)} className="p-3 bg-slate-50 dark:bg-slate-800 hover:bg-rose-500 hover:text-white rounded-xl transition-all shadow-sm">
+                            <button onClick={(e) => handleDeleteRecord(uid, e)} className="p-3 bg-slate-50 dark:bg-slate-800 hover:bg-rose-500 hover:text-white rounded-xl transition-all shadow-sm">
                                <Trash2 size={16} />
                             </button>
                          </div>
@@ -266,11 +265,11 @@ const CallHistory: React.FC = () => {
                            {activeTab === 'voice' ? 'Voice Stream' : 'Unified Hub Snapshot'}
                          </span>
                          <span className="text-slate-300">•</span>
-                         <span className="text-xs font-bold text-slate-500">REF: {selectedRecord.id || selectedRecord.call_id || '---'}</span>
+                         <span className="text-xs font-bold text-slate-500">REF: {selectedRecord._uid || selectedRecord.id || selectedRecord.call_id || '---'}</span>
                       </div>
                    </div>
                 </div>
-                <button onClick={() => setSelectedRecord(null)} className="p-3 bg-white dark:bg-slate-800 hover:bg-rose-50 dark:hover:bg-rose-900/20 hover:text-rose-600 rounded-full border border-slate-100 dark:border-slate-700 shadow-sm transition-all"><X size={20} /></button>
+                <button onClick={() => setSelectedRecord(null)} className="p-3 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-full border border-slate-100 dark:border-slate-700 shadow-sm transition-all"><X size={20} /></button>
              </div>
 
              <div className="flex-1 overflow-y-auto p-10 custom-scrollbar">
