@@ -88,8 +88,7 @@ export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
         _source_origin: 'voice_direct_api',
         start_timestamp: typeof call.start_timestamp === 'string' ? new Date(call.start_timestamp).getTime() : call.start_timestamp,
         duration_display: call.duration_ms ? `${Math.floor(call.duration_ms / 60000)}m ${Math.floor((call.duration_ms % 60000) / 1000)}s` : '---',
-        cost_display: call.combined_cost ? `₹${(call.combined_cost * 84).toFixed(2)}` : '---'
-      }));
+       }));
 
       saveStored(STORAGE_KEY_VOICE_CALLS, normalizedData);
       return normalizedData.filter((c: any) => !deletedIds.includes(c.id || c.call_id));
