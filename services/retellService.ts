@@ -38,50 +38,32 @@ export const markIdAsDeleted = (id: string) => {
 };
 
 /**
- * Generates a stable unique ID for a data object if one doesn't exist.
- * This prevents rows in Google Sheets from overwriting each other.
+ * Merges new Retell data into existing storage.
  */
-const ensureUniqueId = (item: any, prefix: string): string => {
-  if (item.id || item.call_id) return String(item.id || item.call_id);
-  // Create a hash-like string from values to identify unique rows
-  const fingerprint = Object.values(item).filter(v => typeof v !== 'object').join('|');
-  return `${prefix}-${btoa(fingerprint).substring(0, 16)}`;
-};
-
-/**
- * Merges new data into existing storage, preventing overwrites of unique records.
- */
-const mergeAndPersist = (storageKey: string, newData: any[], idPrefix: string) => {
-  const existing = loadStored(storageKey);
-  const existingMap = new Map(existing.map(item => [item._uid || item.id || item.call_id, item]));
+const mergeRetellData = (newData: any[]) => {
+  const existing = loadStored(STORAGE_KEY_VOICE_CALLS);
+  const existingMap = new Map(existing.map(item => [item.call_id || item.id, item]));
   
   newData.forEach(item => {
-    const uid = ensureUniqueId(item, idPrefix);
-    const normalized = {
-      ...item,
-      _uid: uid,
-      _last_synced: Date.now()
-    };
-    // Merge: New data for the same ID overwrites existing
-    existingMap.set(uid, normalized);
+    const id = item.call_id || item.id;
+    if (id) {
+      existingMap.set(id, {
+        ...item,
+        _last_synced: Date.now()
+      });
+    }
   });
 
   const merged = Array.from(existingMap.values());
-  // Sort by timestamp if available
-  merged.sort((a, b) => {
-    const timeA = a.start_timestamp || a.timestamp || 0;
-    const timeB = b.start_timestamp || b.timestamp || 0;
-    return Number(timeB) - Number(timeA);
-  });
-
-  saveStored(storageKey, merged);
+  merged.sort((a, b) => Number(b.start_timestamp || 0) - Number(a.start_timestamp || 0));
+  saveStored(STORAGE_KEY_VOICE_CALLS, merged);
   return merged;
 };
 
 export const getStoredVoiceCalls = (): any[] => {
   const calls = loadStored(STORAGE_KEY_VOICE_CALLS);
   const deletedIds = getDeletedIds();
-  return calls.filter((c: any) => !deletedIds.includes(c._uid || c.id || c.call_id));
+  return calls.filter((c: any) => !deletedIds.includes(c.id || c.call_id));
 };
 
 export const getStoredWebhookCalls = (): any[] => {
@@ -91,31 +73,31 @@ export const getStoredWebhookCalls = (): any[] => {
 };
 
 /**
- * Fetches enriched call data directly from the Voice AI API (Retell).
+ * Fetches enriched call data directly from the Retell API.
  */
 export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
   const apiKey = localStorage.getItem('agent_api_key') || AGENT_CONFIG.API_KEY;
   const agentId = localStorage.getItem('agent_id') || AGENT_CONFIG.AGENT_ID;
   const deletedIds = getDeletedIds();
 
-  // If credentials are deleted/missing, clear the cache and return empty
-  if (!apiKey || apiKey.trim() === '' || apiKey === 'YOUR_AGENT_API_KEY' || apiKey.includes('YOUR_')) {
+  // If credentials are gone, wipe local cache and return empty
+  if (!apiKey || apiKey.trim() === "" || apiKey.includes("YOUR_")) {
     localStorage.removeItem(STORAGE_KEY_VOICE_CALLS);
     return [];
   }
 
   try {
-    // Cache busting with timestamp
-    let url = `https://api.retellai.com/v2/list-calls?sort_order=descending&sort_by=start_timestamp&limit=50&_t=${Date.now()}`;
-    if (agentId && agentId !== 'YOUR_AGENT_ID' && !agentId.includes('YOUR_')) {
+    const timestamp = Date.now();
+    let url = `https://api.retellai.com/v2/list-calls?sort_order=descending&sort_by=start_timestamp&limit=50&_t=${timestamp}`;
+    if (agentId && !agentId.includes("YOUR_")) {
       url += `&filter_agent_id=${agentId}`;
     }
 
     const response = await fetch(url, {
-      method: 'GET',
+      method: "GET",
       headers: { 
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json'
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
       }
     });
 
@@ -127,49 +109,49 @@ export const fetchVoiceDirectCalls = async (): Promise<any[]> => {
         ...call,
         _source_origin: 'voice_direct_api',
         start_timestamp: typeof call.start_timestamp === 'string' ? new Date(call.start_timestamp).getTime() : call.start_timestamp,
-        duration_display: call.duration_ms ? `${Math.floor(call.duration_ms / 60000)}m ${Math.floor((call.duration_ms % 60000) / 1000)}s` : '---',
-        }));
+        duration_display: call.duration_ms ? `${Math.floor(call.duration_ms / 60000)}m ${Math.floor((call.duration_ms % 60000) / 1000)}s` : "---",
+        cost_display: call.combined_cost ? `₹${(call.combined_cost * 84).toFixed(2)}` : "---"
+      }));
 
-      const merged = mergeAndPersist(STORAGE_KEY_VOICE_CALLS, normalizedData, 'retell');
-      return merged.filter((c: any) => !deletedIds.includes(c._uid || c.id || c.call_id));
+      const merged = mergeRetellData(normalizedData);
+      return merged.filter((c: any) => !deletedIds.includes(c.id || c.call_id));
     }
   } catch (error) {
-    console.error('Retell Direct Sync failed:', error);
+    console.error("Retell Fetch Failed:", error);
   }
   return getStoredVoiceCalls();
 };
 
 /**
- * Primary Fetcher for Snapshot data from Google Apps Script.
+ * SNAPSHOT FETCH: Replaces local hub data with exact API response.
  */
 export const fetchWebhookCalls = async (): Promise<any[]> => {
   const deletedIds = getDeletedIds();
   try {
-    // Single GET endpoint for all snapshot data from Google Sheets with cache busting
     const response = await fetch(`${API_CONFIG.GET_CALLS}?_t=${Date.now()}`, { 
-      method: 'GET', 
-      redirect: 'follow' 
+      method: "GET", 
+      redirect: "follow" 
     });
 
     if (response.ok) {
       const data = await response.json();
       const rawData = Array.isArray(data) ? data : (data.calls || data.data || data.leads || []);
       
-      const normalizedData = rawData.map((item: any) => ({ 
+      // For GAS, we treat the API as a complete snapshot. Replace, don't merge.
+      const snapshot = rawData.map((item: any, index: number) => ({ 
         ...item, 
         _source_origin: 'google_apps_script',
+        _uid: `gas-${index}-${Date.now()}`, // Ensure React key stability for this session
         start_timestamp: item.timestamp || item.start_timestamp || item.date || Date.now()
       }));
 
-      const merged = mergeAndPersist(STORAGE_KEY_WEBHOOK_CALLS, normalizedData, 'gas');
-      return merged.filter((c: any) => !deletedIds.includes(c._uid || c.id || c.call_id));
+      saveStored(STORAGE_KEY_WEBHOOK_CALLS, snapshot);
+      return snapshot.filter((c: any) => !deletedIds.includes(c.id || c.call_id));
     }
   } catch (error) {
-    console.warn('GAS Hub Fetch Failed:', error);
+    console.warn("GAS Hub Sync Failed:", error);
   }
   return getStoredWebhookCalls();
 };
 
-export const fetchLeads = async (): Promise<any[]> => {
-  return fetchWebhookCalls();
-};
+export const fetchLeads = async (): Promise<any[]> => fetchWebhookCalls();
